@@ -1,37 +1,38 @@
 <template>
   <v-app>
+    <the-nav-drawer :is-opened="drawer"></the-nav-drawer>
+
     <v-toolbar app>
+      <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <v-toolbar-title class="headline text-uppercase">
-        <span>Vuetify</span>
-        <span class="font-weight-light">MATERIAL DESIGN</span>
+        <span>Siemantik</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn
-        flat
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-      >
-        <span class="mr-2">Latest Release</span>
-      </v-btn>
     </v-toolbar>
 
     <v-content>
-      <HelloWorld/>
+      <v-container fluid>
+        
+        <v-slide-y-transition mode="out-in">
+          <router-view/>
+        </v-slide-y-transition>
+      </v-container>
     </v-content>
   </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld'
+import TheNavDrawer from '@/components/TheNavDrawer'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    TheNavDrawer
   },
+
   data () {
     return {
-      //
+      drawer: true,
     }
   }
 }
