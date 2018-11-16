@@ -10,7 +10,7 @@
       <v-spacer></v-spacer>
     </v-toolbar>
 
-    <v-content>
+    <v-content id="content">
       <v-container fluid>
         
         <v-slide-y-transition mode="out-in">
@@ -37,3 +37,16 @@ export default {
   }
 }
 </script>
+
+<style>
+#content {
+  background: url('https://i.ytimg.com/vi/AeP7CVDEQGg/maxresdefault.jpg');
+  background-repeat: no-repeat;
+  background-size: 100%;
+
+}
+
+a {
+  text-decoration: none;
+}
+</style>
