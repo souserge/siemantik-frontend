@@ -1,13 +1,15 @@
 <template>
   <v-app>
-    <the-nav-drawer :is-opened="drawer"></the-nav-drawer>
-
     <v-toolbar app>
-      <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
-      <v-toolbar-title class="headline text-uppercase">
-        <span>Siemantik</span>
+      <v-toolbar-title class="headline">
+        <span>Semantic Text Classification Service</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
+      <v-toolbar-items>
+        <v-btn :to="{ name: 'projects' }" flat>Projects</v-btn>
+        <v-btn flat>About</v-btn>
+        <v-btn class="text-small" flat>Hello, admin!</v-btn>
+      </v-toolbar-items>
     </v-toolbar>
 
     <v-content id="content">
@@ -22,28 +24,20 @@
 </template>
 
 <script>
-import TheNavDrawer from '@/components/TheNavDrawer'
-
 export default {
-  name: 'App',
-  components: {
-    TheNavDrawer
-  },
+  name: "App",
 
-  data () {
+  data() {
     return {
-      drawer: true,
-    }
+      drawer: true
+    };
   }
-}
+};
 </script>
 
 <style>
 #content {
-  background: url('https://i.ytimg.com/vi/AeP7CVDEQGg/maxresdefault.jpg');
-  background-repeat: no-repeat;
-  background-size: 100%;
-
+  background: url("./assets/pattern.jpg") repeat;
 }
 
 a {

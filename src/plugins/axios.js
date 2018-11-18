@@ -11,5 +11,6 @@ const apiAxios = axios.create({
 	},
 })
 
+export default apiAxios
 
 Vue.use(VueAxios, apiAxios)

@@ -1,22 +1,39 @@
-import Vue from 'vue'
-import Router from 'vue-router'
-import TheProjects from './views/TheProjects'
-import TheProject from './views/TheProject'
+import Vue from "vue";
+import Router from "vue-router";
+import TheProjects from "./views/TheProjects";
+import VProject from "./views/VProject";
+import VProjectDashboard from "./views/VProjectDashboard";
+import VProjectDataset from "./views/VProjectDataset";
+import VProjectLabels from "./views/VProjectLabels";
 
-
-Vue.use(Router)
+Vue.use(Router);
 
 export default new Router({
   routes: [
     {
-      path: '/',
-      name: 'projects',
+      path: "/projects",
+      name: "projects",
       component: TheProjects
     },
     {
-      path: '/project/:id',
-      name: 'project',
-      component: TheProject
-    },
+      path: "/projects/:id/",
+      props: route => ({ projectId: parseInt(route.params.id) }),
+      component: VProject,
+      children: [
+        {
+          path: "",
+          name: "project",
+          component: VProjectDashboard
+        },
+        {
+          path: "dataset",
+          component: VProjectDataset
+        },
+        {
+          path: "labels",
+          component: VProjectLabels
+        }
+      ]
+    }
   ]
-})
+});
