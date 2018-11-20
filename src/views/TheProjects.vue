@@ -13,17 +13,11 @@
               <v-layout fill-height>
                 <v-flex xs12 align-end flexbox>
                   <h3 class="headline">{{ project.name }}</h3>
-                  <h4>language: {{ project.language }}</h4>
+                  <h4>Language: {{ $store.state.languages[project.language] }}</h4>
+                  <h4>No. classes: {{ project.labels.length }}</h4>
                 </v-flex>
               </v-layout>
             </v-container>
-
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn >
-                <v-icon>favorite</v-icon>
-              </v-btn>
-            </v-card-actions>
           </v-card>
         </router-link>
       </v-flex>
@@ -51,32 +45,31 @@
 </template>
 
 <script>
-  import VCreateProjectDialog from '@/components/VCreateProjectDialog'
+import VCreateProjectDialog from "@/components/VCreateProjectDialog";
 
-  export default {
-    components: {
-      VCreateProjectDialog
-    },
+export default {
+  components: {
+    VCreateProjectDialog
+  },
 
-    data: () => ({
-      projects: [],
-      createProjectDialog: false,
-    }),
+  data: () => ({
+    projects: [],
+    createProjectDialog: false
+  }),
 
-    methods: {
-      createNewProject(project) {
-        this.axios.post('projects/', project)
-          .then(({ data }) => {
-            this.projects.push(data)
-            this.createProjectDialog = false;
-          })
-      }
-    },
-
-    mounted() {
-      this.axios.get('projects/').then(({ data }) => {
-        this.projects.push(...data)
-      })
+  methods: {
+    createNewProject(project) {
+      this.axios.post("projects/", project).then(({ data }) => {
+        this.projects.push(data);
+        this.createProjectDialog = false;
+      });
     }
+  },
+
+  mounted() {
+    this.axios.get("projects/").then(({ data }) => {
+      this.projects.push(...data);
+    });
   }
+};
 </script>

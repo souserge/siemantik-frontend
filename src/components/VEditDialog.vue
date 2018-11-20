@@ -2,7 +2,7 @@
 <v-dialog
   persistent
   v-model="dialog"
-  max-width="500px"
+  :max-width="maxWidth"
   v-if="item"
   @keydown.esc="close"
   @keydown.enter="save"
@@ -42,6 +42,14 @@
                 :rules="rules(attr)"
                 :key="idx"
               ></v-checkbox>
+              <v-textarea
+                v-else-if="isTextarea(attr)"
+                v-model="item[attr.value]"
+                :label="attr.text"
+                :rules="rules(attr)"
+                :key="idx"
+                :rows="10"
+            ></v-textarea>
             </template>
           </v-form>
     </v-card-text>
@@ -65,6 +73,11 @@ export default {
     dialog: {
       type: Boolean,
       default: false
+    },
+
+    maxWidth: {
+      type: Number,
+      default: 500
     },
 
     item: {

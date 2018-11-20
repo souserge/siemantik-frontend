@@ -43,6 +43,7 @@
     <v-edit-dialog
       :attributes="editableAttributes"
       :dialog="newDocDialog"
+      :max-width="800"
       @save="saveNewDoc"
       @cancel="closeNewDocDialog"
     >
@@ -97,7 +98,6 @@ export default {
         { text: "Body", value: "text", visible: false, type: "textarea" },
         { text: "Set manually?", value: "is_set_manually", editable: false }
       ],
-      documents: [],
       newDocDialog: false
     };
   },
@@ -110,7 +110,15 @@ export default {
   },
 
   computed: {
-    labels: () => store.getters.currentProjectLabels,
+    labels: () =>
+      store.getters.currentProjectLabels.map(
+        ({ id, classname, display_name }) => ({
+          value: id,
+          text: display_name ? `${display_name} (${classname})` : classname
+        })
+      ),
+
+    documents: () => store.getters.currentProjectDocuments,
 
     numberOfDocuments() {
       return this.documents.length;
@@ -141,6 +149,10 @@ export default {
     },
 
     saveNewDoc(newDoc) {
+      console.log(newDoc);
+      const { title, text, label } = newDoc;
+      console.log(title, text, label);
+      this.closeNewDocDialog();
       // if (this.editContext.isNew) {
       //   this.emitEvent("create", [], this.editContext.item);
       // } else {

@@ -26,6 +26,24 @@
         </v-card-text>
       </v-card>
     </v-flex>
+    <v-toolbar flat color="white">
+    <v-btn class="mb-2">
+      Train classifier
+    </v-btn>
+    <v-btn class="mb-2">
+      Classify unlabelled data
+    </v-btn>
+    <v-spacer></v-spacer>
+    <v-btn class="mb-2">
+      Import model
+    </v-btn>
+    <v-btn class="mb-2">
+      Export model
+    </v-btn>
+    <v-btn class="mb-2">
+      Settings
+    </v-btn>
+    </v-toolbar>
   </v-layout>
 </template>
 

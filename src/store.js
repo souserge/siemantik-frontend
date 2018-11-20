@@ -73,37 +73,45 @@ export default new Vuex.Store({
       currentProject.data.language = language;
       currentProject.data.classifier = classifier;
       currentProject.data.description = description;
-      currentProject.data.labels = labels.map(
-        ({ id, classname, display_name }) => ({
-          value: id,
-          text: display_name ? `${display_name} (${classname})` : classname
-        })
-      );
+      currentProject.data.labels = labels;
 
       currentProject.loadingState = LOADING_STATES.LOAD_SUCCESS;
     },
 
     unsetCurrentProject({ currentProject }) {
       currentProject.loadingState = LOADING_STATES.NOT_INITIATED;
+      currentProject.documentsLoadingState = LOADING_STATES.NOT_INITIATED;
     },
 
-    loadCurrentProject({ currentProject }) {
+    startLoadingCurrentProject({ currentProject }) {
       currentProject.loadingState = LOADING_STATES.LOADING;
+      currentProject.documentsLoadingState = LOADING_STATES.LOADING;
     },
 
     failLoadingCurrentProject({ currentProject }) {
       currentProject.loadingState = LOADING_STATES.LOAD_ERROR;
+      currentProject.documentsLoadingState = LOADING_STATES.LOAD_ERROR;
     },
 
     enqueueNotification: (state, notification) =>
       state.notificationQueue.push(notification),
-    dequeueNotification: state => state.notificationQueue.shift()
+
+    dequeueNotification: state => state.notificationQueue.shift(),
+
+    addNewDocToCurrentProject({ currentProject }, newDoc) {
+      currentProject.data.push(newDoc);
+    },
+
+    setCurrentProjectDocuments({ currentProject }, documents) {
+      currentProject.data.documents = documents;
+      currentProject.documentsLoadingState = LOADING_STATES.LOAD_SUCCESS;
+    }
   },
   actions: {
     loadProject({ commit }, projectId) {
-      commit("loadCurrentProject");
+      commit("startLoadingCurrentProject");
 
-      return apiAxios
+      const projectPromise = apiAxios
         .get(`projects/${projectId}/`)
         .then(
           ({ data: { name, language, classifier, description, labels } }) => {
@@ -116,12 +124,58 @@ export default new Vuex.Store({
               labels
             });
           }
-        )
-        .catch(() => commit("failLoadingCurrentProject"));
+        );
+
+      const documentsPromise = apiAxios
+        .get(`projects/${projectId}/documents/`)
+        .then(({ data }) => commit("setCurrentProjectDocuments", data));
+
+      return Promise.all(projectPromise, documentsPromise).catch(() =>
+        commit("failLoadingCurrentProject")
+      );
     },
 
     unloadProject({ commit }) {
       return commit("unsetCurrentProject");
+    },
+
+    addNewDocToProject({ commit, state }, { title, text, label }) {
+      if (
+        state.currentProject.documentsLoadingState ===
+        LOADING_STATES.LOAD_SUCCESS
+      ) {
+        return apiAxios
+          .post(`projects/${state.currentProject.data.id}/documents/`, {
+            title,
+            text,
+            label: label === undefined ? null : label
+          })
+          .then(({ data }) => {
+            commit("addNewDocToCurrentProject", data);
+            commit("enqueueNotification", {
+              type: "success",
+              text: `A new document was added to ${
+                state.currentProject.data.name
+              }!`
+            });
+            return data;
+          })
+          .catch(() => {
+            commit("enqueueNotification", {
+              type: "error",
+              text:
+                "Could not add a new document to the current project. Not sure why :("
+            });
+            return Promise.reject();
+          });
+      } else {
+        commit("enqueueNotification", {
+          type: "error",
+          text:
+            "Cannot add a document to a not loaded project. Please, wait until it loads."
+        });
+        return Promise.reject();
+      }
     }
   }
 });

@@ -1,5 +1,6 @@
 <template>
   <v-app>
+    <the-notification-handler></the-notification-handler>
     <v-toolbar app>
       <v-toolbar-title class="headline">
         <span>Semantic Text Classification Service</span>
@@ -24,8 +25,14 @@
 </template>
 
 <script>
+import TheNotificationHandler from "@/components/TheNotificationHandler";
+
 export default {
   name: "App",
+
+  components: {
+    TheNotificationHandler
+  },
 
   data() {
     return {

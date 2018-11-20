@@ -11,6 +11,10 @@ export default {
       return this.type(attr) === "text";
     },
 
+    isTextarea(attr) {
+      return this.type(attr) === "textarea";
+    },
+
     isOptions(attr) {
       // attr.options must be [{ text: String, value: any }]
       return (
