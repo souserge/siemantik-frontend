@@ -10,6 +10,10 @@
       <slot></slot>
     </v-card-title>
 
+    <v-card-text>
+      <slot name="additional-info"></slot>
+    </v-card-text>
+
     <v-card-actions>
       <v-spacer></v-spacer>
       <v-btn color="blue darken-1" flat @click="cancel">Cancel</v-btn>

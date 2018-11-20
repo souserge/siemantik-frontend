@@ -55,9 +55,11 @@ export default {
 
   data: () => ({}),
   computed: {
-    language: () => store.getters.currentProjectLanguage,
-    classifier: () => store.getters.currentProjectClassifier,
-    description: () => store.getters.currentProjectDescription
+    language: () => store.getters.currentProjectLanguageDisplay || "Not set",
+    classifier: () =>
+      store.getters.currentProjectClassifierDisplay || "Not set",
+    description: () =>
+      store.getters.currentProjectDescriptionDisplay || "No description"
   }
 };
 </script>

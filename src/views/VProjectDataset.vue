@@ -46,16 +46,30 @@
       :max-width="800"
       @save="saveNewDoc"
       @cancel="closeNewDocDialog"
+      ref="editDialog"
     >
       Create new document
     </v-edit-dialog>
+
+    <v-confirm-dialog
+      :dialog="deleteDocDialog"
+      @confirm="deleteDoc"
+      @cancel="closeDeleteDialog"
+    >
+      Are you sure you want to delete this document?
+      <template v-if="deleteDocItem !== null" slot="additional-info">
+        Title: {{ deleteDocItem.title }} <br/>
+        Label: {{ getLabel(deleteDocItem.label) }}
+      </template>
+    </v-confirm-dialog>
 
   </v-toolbar>
 
 
   <v-data-table
-    :headers="visibleAttributes"
+    :headers="headers"
     :items="documents"
+    :loading="isLoading"
   >
     <template slot="items" slot-scope="props">
       <td>{{ props.item.id }}</td>
@@ -67,7 +81,21 @@
         ></v-select>
         </td>
       <td>{{ props.item.is_set_manually }}</td>
-
+      <td>
+        <v-icon
+          small
+          class="mr-2"
+          @click.stop="editDoc(props.item)"
+        >
+          edit
+        </v-icon>
+        <v-icon
+          small
+          @click.stop="openDeleteDialog(props.item)"
+        >
+          delete
+        </v-icon>
+      </td>
     </template>
     <template slot="no-data">
     </template>
@@ -77,28 +105,54 @@
 
 <script>
 import VEditDialog from "@/components/VEditDialog";
+import VConfirmDialog from "@/components/VConfirmDialog";
 import store from "@/store";
 
 export default {
   components: {
-    VEditDialog
+    VEditDialog,
+    VConfirmDialog
   },
 
   data() {
     return {
       attributes: [
         { text: "ID", value: "id", visible: true, editable: false },
-        { text: "Title", value: "title" },
+        {
+          text: "Title",
+          value: "title",
+          rules: [
+            v =>
+              !v ||
+              v.length <= 100 ||
+              "Tilte cannot be longer than 100 characters"
+          ]
+        },
         {
           text: "Label",
           value: "label",
           type: "options",
           options: store.getters.currentProjectLabels
         },
-        { text: "Body", value: "text", visible: false, type: "textarea" },
+        {
+          text: "Body",
+          value: "text",
+          type: "textarea",
+          rules: [
+            v => !!v || "The body of the doc must be specified",
+            v =>
+              (v && v.length >= 50) || "The body must be at least 50 characters"
+          ],
+          visible: false
+        },
         { text: "Set manually?", value: "is_set_manually", editable: false }
       ],
-      newDocDialog: false
+      newDocDialog: false,
+      deleteDocDialog: false,
+      deleteDocItem: null,
+      additionalHeaders: [
+        { text: "Actions", value: "actions", sortable: false }
+      ]
     };
   },
 
@@ -120,6 +174,8 @@ export default {
 
     documents: () => store.getters.currentProjectDocuments,
 
+    isLoading: () => store.getters.isCurrentProjectDocumentsLoading,
+
     numberOfDocuments() {
       return this.documents.length;
     },
@@ -136,10 +192,19 @@ export default {
 
     editableAttributes() {
       return this.attributes.filter(attr => attr.editable !== false);
+    },
+
+    headers() {
+      return this.visibleAttributes.concat(this.additionalHeaders);
     }
   },
 
   methods: {
+    getLabel(labelId) {
+      const label = this.labels.find(l => l.value === labelId);
+      return label ? label.text : "None";
+    },
+
     openNewDocDialog() {
       this.newDocDialog = true;
     },
@@ -149,52 +214,27 @@ export default {
     },
 
     saveNewDoc(newDoc) {
-      console.log(newDoc);
       const { title, text, label } = newDoc;
-      console.log(title, text, label);
+      store.dispatch("addNewDocToProject", { title, text, label }).then(() => {
+        this.$refs.editDialog.item = {};
+      });
       this.closeNewDocDialog();
-      // if (this.editContext.isNew) {
-      //   this.emitEvent("create", [], this.editContext.item);
-      // } else {
-      //   this.emitEvent(
-      //     "update",
-      //     [this.editContext.item.id],
-      //     this.editContext.item
-      //   );
-      // }
-      // this.closeEditDialog();
+    },
+
+    openDeleteDialog(doc) {
+      this.deleteDocDialog = true;
+      this.deleteDocItem = doc;
+    },
+
+    closeDeleteDialog() {
+      this.deleteDocDialog = false;
+      this.deleteDocItem = null;
+    },
+
+    deleteDoc() {
+      store.dispatch("deleteDocumentFromProject", this.deleteDocItem.id);
+      this.closeDeleteDialog();
     }
-
-    // deleteItem(item) {
-    //   this.deleteContext.item = item;
-    //   this.openDeleteDialog();
-    // },
-
-    // openDeleteDialog() {
-    //   this.deleteContext.dialog = true;
-    // },
-
-    // closeDeleteDialog() {
-    //   this.deleteContext.dialog = false;
-    //   this.deleteContext.item = null;
-    // },
-
-    // confirmDelete() {
-    //   this.emitEvent(
-    //     "delete",
-    //     [this.deleteContext.item.id],
-    //     this.deleteContext.item
-    //   );
-    //   this.closeDeleteDialog();
-    // }
-  },
-
-  mounted() {
-    const projectUrl = `projects/${this.$route.params.id}/`;
-
-    this.axios
-      .get(`${projectUrl}documents/`)
-      .then(({ data }) => this.documents.push(...data));
   }
 };
 </script>

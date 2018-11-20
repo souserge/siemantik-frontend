@@ -35,7 +35,7 @@ export default {
   data: () => ({}),
 
   computed: {
-    name: () => store.getters.currentProjectName
+    name: () => store.getters.currentProjectNameDisplay
   },
 
   mounted() {

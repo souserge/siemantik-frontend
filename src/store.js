@@ -50,14 +50,26 @@ export default new Vuex.Store({
   },
 
   getters: {
-    currentProjectName: getProjectProp("name"),
-    currentProjectDescription: getProjectProp("description"),
-    currentProjectClassifier: getProjectProp("classifier"),
-    currentProjectLabels: state => state.currentProject.data.labels || [],
-    currentProjectLanguage: state =>
+    currentProjectNameDisplay: getProjectProp("name"),
+
+    currentProjectDescriptionDisplay: getProjectProp("description"),
+
+    currentProjectClassifierDisplay: getProjectProp("classifier"),
+
+    currentProjectLanguageDisplay: state =>
       state.currentProject.loadingState === LOADING_STATES.LOAD_SUCCESS
         ? state.languages[state.currentProject.data.language]
         : getProjectProp("language")(state),
+
+    currentProjectLabels: state => state.currentProject.data.labels || [],
+
+    currentProjectDocuments: state => state.currentProject.data.documents || [],
+
+    isCurrentProjectLoading: state =>
+      state.currentProject.loadingState === LOADING_STATES.LOADING,
+
+    isCurrentProjectDocumentsLoading: state =>
+      state.currentProject.documentsLoadingState === LOADING_STATES.LOADING,
 
     notificationQueueLength: state => state.notificationQueue.length,
     peekNotification: state => state.notificationQueue[0] || null
@@ -99,12 +111,59 @@ export default new Vuex.Store({
     dequeueNotification: state => state.notificationQueue.shift(),
 
     addNewDocToCurrentProject({ currentProject }, newDoc) {
-      currentProject.data.push(newDoc);
+      currentProject.data.documents.push(newDoc);
     },
 
     setCurrentProjectDocuments({ currentProject }, documents) {
       currentProject.data.documents = documents;
       currentProject.documentsLoadingState = LOADING_STATES.LOAD_SUCCESS;
+    },
+
+    deleteDocFromCurrentProject(
+      {
+        currentProject: {
+          data: { documents }
+        }
+      },
+      docId
+    ) {
+      const idxOfDeleted = documents.findIndex(d => d.id === docId);
+      documents.splice(idxOfDeleted, 1);
+    },
+
+    deleteLabelFromCurrentProject(
+      {
+        currentProject: {
+          data: { labels }
+        }
+      },
+      labelId
+    ) {
+      const idxOfDeleted = labels.findIndex(l => l.id === labelId);
+      labels.splice(idxOfDeleted, 1);
+    },
+
+    addNewLabelToCurrentProject(
+      {
+        currentProject: {
+          data: { labels }
+        }
+      },
+      newLabel
+    ) {
+      labels.push(newLabel);
+    },
+
+    updateLabelInCurrentProject(
+      {
+        currentProject: {
+          data: { labels }
+        }
+      },
+      newLabel
+    ) {
+      const idxOfDeleted = labels.findIndex(l => l.id === newLabel.id);
+      labels.splice(idxOfDeleted, 1, newLabel);
     }
   },
   actions: {
@@ -130,9 +189,14 @@ export default new Vuex.Store({
         .get(`projects/${projectId}/documents/`)
         .then(({ data }) => commit("setCurrentProjectDocuments", data));
 
-      return Promise.all(projectPromise, documentsPromise).catch(() =>
-        commit("failLoadingCurrentProject")
-      );
+      return Promise.all([projectPromise, documentsPromise]).catch(() => {
+        commit("failLoadingCurrentProject");
+        commit("enqueueNotification", {
+          type: "error",
+          text: `Couldn't load the project. Maybe, your internet connection is down? If not, please, contact the administator.`,
+          timeout: 10000
+        });
+      });
     },
 
     unloadProject({ commit }) {
@@ -146,18 +210,20 @@ export default new Vuex.Store({
       ) {
         return apiAxios
           .post(`projects/${state.currentProject.data.id}/documents/`, {
-            title,
+            title: title === undefined ? null : title,
             text,
-            label: label === undefined ? null : label
+            label_id: label === undefined ? null : label
           })
           .then(({ data }) => {
             commit("addNewDocToCurrentProject", data);
+
             commit("enqueueNotification", {
               type: "success",
               text: `A new document was added to ${
                 state.currentProject.data.name
               }!`
             });
+
             return data;
           })
           .catch(() => {
@@ -176,6 +242,107 @@ export default new Vuex.Store({
         });
         return Promise.reject();
       }
+    },
+
+    deleteDocumentFromProject({ commit }, docId) {
+      return apiAxios
+        .delete(`documents/${docId}/`)
+        .then(() => {
+          commit("deleteDocFromCurrentProject", docId);
+          commit("enqueueNotification", {
+            type: "success",
+            text: "Document was deleted successfully!"
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: "Oops, couldn't delete this document :("
+          });
+        });
+    },
+
+    deleteLabelFromProject({ commit }, labelId) {
+      return apiAxios
+        .delete(`labels/${labelId}/`)
+        .then(() => {
+          commit("deleteLabelFromCurrentProject", labelId);
+          commit("enqueueNotification", {
+            type: "success",
+            text: "Label was deleted successfully!"
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: "Oops, couldn't delete this label :("
+          });
+        });
+    },
+
+    addNewLabelToProject({ commit, state }, { classname, display_name }) {
+      if (state.currentProject.loadingState === LOADING_STATES.LOAD_SUCCESS) {
+        return apiAxios
+          .post(`projects/${state.currentProject.data.id}/labels/`, {
+            classname,
+            display_name: display_name || ""
+          })
+          .then(({ data }) => {
+            commit("addNewLabelToCurrentProject", data);
+
+            commit("enqueueNotification", {
+              type: "success",
+              text: `A new label was added to ${
+                state.currentProject.data.name
+              }!`
+            });
+
+            return data;
+          })
+          .catch(() => {
+            commit("enqueueNotification", {
+              type: "error",
+              text:
+                "Could not add a new label to the current project. Not sure why :("
+            });
+            return Promise.reject();
+          });
+      } else {
+        commit("enqueueNotification", {
+          type: "error",
+          text:
+            "Cannot add a label to a not loaded project. Please, wait until it loads."
+        });
+        return Promise.reject();
+      }
+    },
+
+    editLabelInProject({ commit }, { id, classname, display_name }) {
+      return apiAxios
+        .patch(`labels/${id}/`, {
+          classname,
+          display_name
+        })
+        .then(({ data }) => {
+          commit("updateLabelInCurrentProject", data);
+
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Label ${data.classname} was updated!`
+          });
+
+          return data;
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't update label ${classname} :(
+              Please try again. If the issue persists, contact administrator.`,
+
+            timeout: 8000
+          });
+          return Promise.reject();
+        });
     }
   }
 });

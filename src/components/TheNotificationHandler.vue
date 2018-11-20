@@ -4,6 +4,7 @@
     v-model="isVisible"
     :color="color"
     :timeout="timeout"
+    :auto-height="true"
     bottom right
   >
     {{ text }}
@@ -46,7 +47,7 @@ export default {
         this.color = this.notificationTypes.includes(type) ? type : "info";
         this.timeout = isNaN(timeout)
           ? 4000
-          : Math.min(8000, Math.max(500, timeout));
+          : Math.min(10000, Math.max(500, timeout));
         this.isVisible = true;
         this.$store.commit("dequeueNotification");
       }
