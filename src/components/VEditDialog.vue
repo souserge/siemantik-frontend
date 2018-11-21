@@ -48,7 +48,7 @@
                 :label="attr.text"
                 :rules="rules(attr)"
                 :key="idx"
-                :rows="10"
+                :rows="attr.numRows || 10"
             ></v-textarea>
             </template>
           </v-form>

@@ -164,6 +164,30 @@ export default new Vuex.Store({
     ) {
       const idxOfDeleted = labels.findIndex(l => l.id === newLabel.id);
       labels.splice(idxOfDeleted, 1, newLabel);
+    },
+
+    editDocInCurrentProject(
+      {
+        currentProject: {
+          data: { documents }
+        }
+      },
+      newDoc
+    ) {
+      const idxOfDeleted = documents.findIndex(l => l.id === newDoc.id);
+      documents.splice(idxOfDeleted, 1, newDoc);
+    },
+
+    editCurrentProject(
+      {
+        currentProject: { data }
+      },
+      { name, description, classifier, language }
+    ) {
+      data.name = name;
+      data.description = description;
+      data.classifier = classifier;
+      data.language = language;
     }
   },
   actions: {
@@ -340,6 +364,56 @@ export default new Vuex.Store({
               Please try again. If the issue persists, contact administrator.`,
 
             timeout: 8000
+          });
+          return Promise.reject();
+        });
+    },
+
+    editDocInProject({ commit, state }, { id, text, title, label }) {
+      return apiAxios
+        .patch(`documents/${id}/`, { text, title, label })
+        .then(({ data }) => {
+          commit("editDocInCurrentProject", data);
+
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Document ${data.id} was updated!`
+          });
+
+          return data;
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't update the document :(
+              Please try again. If the issue persists, contact administrator.`,
+
+            timeout: 8000
+          });
+          return Promise.reject();
+        });
+    },
+
+    editProject({ commit }, { id, name, description, classifier, language }) {
+      return apiAxios
+        .patch(`projects/${id}/`, {
+          name,
+          description,
+          classifier,
+          language
+        })
+        .then(({ data }) => {
+          commit("editCurrentProject", data);
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Successfully edited "${data.name}"!`
+          });
+          return data;
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't save edit for "${name}" :(`
           });
           return Promise.reject();
         });

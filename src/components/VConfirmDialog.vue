@@ -16,8 +16,22 @@
 
     <v-card-actions>
       <v-spacer></v-spacer>
-      <v-btn color="blue darken-1" flat @click="cancel">Cancel</v-btn>
-      <v-btn color="error" dark @click="confirm">
+      <v-btn
+        :color="reverseColors ? 'blue' : 'blue darken-1'"
+        :flat="!reverseColors"
+        :dark="reverseColors"
+        @click="cancel"
+      >
+        <slot name="cancel">
+          Cancel
+        </slot>
+      </v-btn>
+      <v-btn
+        :color="reverseColors ? 'darken-1' : 'error'"
+        :flat="reverseColors"
+        :dark="!reverseColors"
+        @click="confirm"
+      >
         <slot name="action">
           Confirm
         </slot>
@@ -31,6 +45,10 @@
 export default {
   props: {
     dialog: {
+      type: Boolean,
+      default: false
+    },
+    reverseColors: {
       type: Boolean,
       default: false
     }

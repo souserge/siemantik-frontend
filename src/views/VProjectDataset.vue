@@ -48,7 +48,7 @@
       @cancel="closeNewDocDialog"
       ref="editDialog"
     >
-      Create new document
+      Create/Edit document
     </v-edit-dialog>
 
     <v-confirm-dialog
@@ -76,8 +76,9 @@
       <td>{{ props.item.title }}</td>
       <td>
         <v-select
-          v-model="props.item.label"
+          :value="props.item.label"
           :items="labels"
+          @change="newLabel => changeLabel(props.item, newLabel)"
         ></v-select>
         </td>
       <td>{{ props.item.is_set_manually }}</td>
@@ -200,6 +201,10 @@ export default {
   },
 
   methods: {
+    changeLabel(doc, newLabel) {
+      store.dispatch("editDocInProject", { id: doc.id, label: newLabel });
+    },
+
     getLabel(labelId) {
       const label = this.labels.find(l => l.value === labelId);
       return label ? label.text : "None";
