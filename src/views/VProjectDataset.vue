@@ -62,7 +62,7 @@
       Are you sure you want to delete this document?
       <template v-if="deleteDocItem !== null" slot="additional-info">
         Title: {{ deleteDocItem.title }} <br/>
-        Label: {{ getLabel(deleteDocItem.label) }}
+        Label: {{ getLabelText(deleteDocItem.label) }}
       </template>
     </v-confirm-dialog>
 
@@ -83,19 +83,19 @@
     <template slot="items" slot-scope="props">
         <td @click="showText(props)">{{ props.item.id }}</td>
         <td @click="showText(props)">{{ props.item.title }}</td>
-        <td>
-          <v-select
-            :value="props.item.label"
-            :items="labels"
-            @change="newLabel => changeLabel(props.item, newLabel)"
-            :append-outer-icon="
-              props.item.label !== null 
+        <td @click="showText(props)">
+          {{ getLabelText(props.item.label) }}
+          <v-tooltip
+            v-if="props.item.label !== null 
               && props.item.label !== undefined
-              && !props.item.is_set_manually 
-              ? 'notification_important' 
-              : ''
-            "
-          ></v-select>
+              && !props.item.is_set_manually"
+            bottom
+          >
+            <v-icon slot="activator">
+              notification_important
+            </v-icon>
+            <span>This document was labelled automatically</span>
+          </v-tooltip>      
         </td>
         <td>
           <v-icon
@@ -251,13 +251,9 @@ export default {
       this.importDialog = true;
     },
 
-    changeLabel(doc, newLabel) {
-      store.dispatch("editDocInProject", { id: doc.id, label: newLabel });
-    },
-
-    getLabel(labelId) {
+    getLabelText(labelId) {
       const label = this.labels.find(l => l.value === labelId);
-      return label ? label.text : "None";
+      return label !== null && label !== undefined ? label.text : "–";
     },
 
     openNewDocDialog() {
