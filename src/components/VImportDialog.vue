@@ -15,7 +15,7 @@
     <v-card-text>
       <v-form>
         <v-select
-          :value="label"
+          v-model="label"
           :items="labels"
           persistent-hint
           hint="Imported documents will have this label automatically assigned"
@@ -79,7 +79,7 @@ export default {
     labels: {
       type: Array
     },
-    label: {
+    initLabel: {
       type: Number,
       default: -1
     }
@@ -92,7 +92,8 @@ export default {
       isSaving: false,
       uploadFieldName: "Import data",
       importProgress: 0,
-      numImportedDocs: -1
+      numImportedDocs: -1,
+      label: this.initLabel
     };
   },
 

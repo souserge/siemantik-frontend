@@ -482,6 +482,17 @@ export default new Vuex.Store({
         }
       }
       return Promise.reject("Couldn't load the text of this document");
+    },
+
+    importDocumentsToProject({ commit, state }, { documents, label }) {
+      return apiAxios
+        .post(`projects/${state.currentProject.data.id}/import_documents/`, {
+          documents,
+          label
+        })
+        .then(({ data }) => {
+          data.forEach(doc => commit("addNewDocToCurrentProject", doc));
+        });
     }
   }
 });
