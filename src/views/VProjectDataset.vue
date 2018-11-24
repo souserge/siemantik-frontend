@@ -27,6 +27,7 @@
       color="primary"
       dark
       class="mb-2"
+      @click="openImportDialog"
     >
       Import
     </v-btn>
@@ -35,6 +36,8 @@
       color="primary"
       dark
       class="mb-2"
+      @click.stop="exportDocuments"
+      :loading="exportLoading"
     >
       Export
     </v-btn>
@@ -42,11 +45,11 @@
 
     <v-edit-dialog
       :attributes="editableAttributes"
-      :dialog="newDocDialog"
+      :dialog="newEditDocDialog"
+      :item="newEditDocItem"
       :max-width="800"
-      @save="saveNewDoc"
-      @cancel="closeNewDocDialog"
-      ref="editDialog"
+      @save="saveNewEditDoc"
+      @cancel="closeNewEditDocDialog"
     >
       Create/Edit document
     </v-edit-dialog>
@@ -63,40 +66,65 @@
       </template>
     </v-confirm-dialog>
 
+    <v-import-dialog
+      :dialog="importDialog"
+      :labels="importLabels"
+      @cancel="closeImportDialog"
+      @documentsLoaded="saveImportedDocuments"
+    ></v-import-dialog>
   </v-toolbar>
-
 
   <v-data-table
     :headers="headers"
     :items="documents"
     :loading="isLoading"
+    expand
   >
     <template slot="items" slot-scope="props">
-      <td>{{ props.item.id }}</td>
-      <td>{{ props.item.title }}</td>
-      <td>
-        <v-select
-          :value="props.item.label"
-          :items="labels"
-          @change="newLabel => changeLabel(props.item, newLabel)"
-        ></v-select>
+        <td @click="showText(props)">{{ props.item.id }}</td>
+        <td @click="showText(props)">{{ props.item.title }}</td>
+        <td>
+          <v-select
+            :value="props.item.label"
+            :items="labels"
+            @change="newLabel => changeLabel(props.item, newLabel)"
+            :append-outer-icon="
+              props.item.label !== null 
+              && props.item.label !== undefined
+              && !props.item.is_set_manually 
+              ? 'notification_important' 
+              : ''
+            "
+          ></v-select>
         </td>
-      <td>{{ props.item.is_set_manually }}</td>
-      <td>
-        <v-icon
-          small
-          class="mr-2"
-          @click.stop="editDoc(props.item)"
-        >
-          edit
-        </v-icon>
-        <v-icon
-          small
-          @click.stop="openDeleteDialog(props.item)"
-        >
-          delete
-        </v-icon>
-      </td>
+        <td>
+          <v-icon
+            small
+            class="mr-2"
+            @click.stop="openEditDocDialog(props.item)"
+          >
+            edit
+          </v-icon>
+          <v-icon
+            small
+            @click.stop="openDeleteDialog(props.item)"
+          >
+            delete
+          </v-icon>
+        </td>
+    </template>
+    <template slot="expand" slot-scope="props">
+      <v-progress-circular
+        v-if="!props.item.text"
+        style="margin: auto; display: block;"
+        indeterminate
+      ></v-progress-circular>
+      <v-card
+        v-else
+        flat
+      >
+        <v-card-text>{{ props.item.text }}</v-card-text>
+      </v-card>
     </template>
     <template slot="no-data">
     </template>
@@ -107,12 +135,27 @@
 <script>
 import VEditDialog from "@/components/VEditDialog";
 import VConfirmDialog from "@/components/VConfirmDialog";
+import VImportDialog from "@/components/VImportDialog";
 import store from "@/store";
+import JSZip from "jszip";
+
+const saveBlob = (function() {
+  const a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style = "display: none";
+  return (filename, blob) => {
+    a.href = window.URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(a.href);
+  };
+})();
 
 export default {
   components: {
     VEditDialog,
-    VConfirmDialog
+    VConfirmDialog,
+    VImportDialog
   },
 
   data() {
@@ -133,7 +176,7 @@ export default {
           text: "Label",
           value: "label",
           type: "options",
-          options: store.getters.currentProjectLabels
+          options: store.getters.currentProjectLabelsDisplay
         },
         {
           text: "Body",
@@ -142,18 +185,23 @@ export default {
           rules: [
             v => !!v || "The body of the doc must be specified",
             v =>
-              (v && v.length >= 50) || "The body must be at least 50 characters"
+              (v && v.length >= 50) ||
+              `The body must be at least 50 characters (${(v || "").length}/50)`
           ],
           visible: false
-        },
-        { text: "Set manually?", value: "is_set_manually", editable: false }
+        }
       ],
-      newDocDialog: false,
+      newEditDocDialog: false,
+      newEditDocItem: {},
+      newEditDocDialogIsNew: false,
       deleteDocDialog: false,
       deleteDocItem: null,
       additionalHeaders: [
         { text: "Actions", value: "actions", sortable: false }
-      ]
+      ],
+      exportLoading: false,
+      importDialog: false,
+      importLoaded: false
     };
   },
 
@@ -165,13 +213,7 @@ export default {
   },
 
   computed: {
-    labels: () =>
-      store.getters.currentProjectLabels.map(
-        ({ id, classname, display_name }) => ({
-          value: id,
-          text: display_name ? `${display_name} (${classname})` : classname
-        })
-      ),
+    labels: () => store.getters.currentProjectLabelsDisplay,
 
     documents: () => store.getters.currentProjectDocuments,
 
@@ -197,10 +239,18 @@ export default {
 
     headers() {
       return this.visibleAttributes.concat(this.additionalHeaders);
+    },
+
+    importLabels() {
+      return [{ text: "Unlabelled", value: -1 }].concat(this.labels);
     }
   },
 
   methods: {
+    openImportDialog() {
+      this.importDialog = true;
+    },
+
     changeLabel(doc, newLabel) {
       store.dispatch("editDocInProject", { id: doc.id, label: newLabel });
     },
@@ -211,19 +261,52 @@ export default {
     },
 
     openNewDocDialog() {
-      this.newDocDialog = true;
+      this.newEditDocDialog = true;
+      this.newEditDocDialogIsNew = true;
     },
 
-    closeNewDocDialog() {
-      this.newDocDialog = false;
+    openEditDocDialog(doc) {
+      this.loadDocText(doc)
+        .catch(msg => {
+          store.commit("enqueueNotification", {
+            type: "error",
+            text: msg
+          });
+        })
+        .then(() => {
+          this.newEditDocItem = doc;
+          this.newEditDocDialog = true;
+          this.newEditDocDialogIsNew = false;
+        });
     },
 
-    saveNewDoc(newDoc) {
-      const { title, text, label } = newDoc;
-      store.dispatch("addNewDocToProject", { title, text, label }).then(() => {
-        this.$refs.editDialog.item = {};
-      });
-      this.closeNewDocDialog();
+    loadDocText(doc) {
+      return store.dispatch("getDocTextInProject", doc.id);
+    },
+
+    closeNewEditDocDialog() {
+      this.newEditDocDialog = false;
+      if (!this.newEditDocDialogIsNew) {
+        this.newEditDocItem = {};
+      }
+    },
+
+    saveNewEditDoc(doc) {
+      const { title, text, label } = doc;
+      if (this.newEditDocDialogIsNew) {
+        store
+          .dispatch("addNewDocToProject", { title, text, label })
+          .then(() => {
+            this.newEditDocItem = {};
+          });
+      } else {
+        store
+          .dispatch("editDocInProject", { id: doc.id, title, text, label })
+          .then(() => {
+            this.newEditDocItem = {};
+          });
+      }
+      this.closeNewEditDocDialog();
     },
 
     openDeleteDialog(doc) {
@@ -239,6 +322,80 @@ export default {
     deleteDoc() {
       store.dispatch("deleteDocumentFromProject", this.deleteDocItem.id);
       this.closeDeleteDialog();
+    },
+
+    showText(props) {
+      if (props.expanded) {
+        props.expanded = false;
+      } else {
+        props.expanded = true;
+        this.loadDocText(props.item).catch(msg => {
+          props.expanded = false;
+          store.commit("enqueueNotification", {
+            type: "error",
+            text: msg
+          });
+        });
+      }
+    },
+
+    exportDocuments() {
+      this.exportLoading = true;
+      const labelObj = {};
+      const labelMeta = {};
+      store.getters.currentProjectLabels.forEach(l => {
+        labelObj[l.id] = [];
+        labelMeta[l.id] = l;
+      });
+      labelObj["other"] = [];
+
+      this.documents.forEach(d => {
+        if (d.label === null || d.label === undefined) {
+          labelObj["other"].push(d);
+        } else {
+          labelObj[d.label].push(d);
+        }
+      });
+
+      const zip = new JSZip();
+
+      const promiseArr = [];
+      Object.keys(labelObj).forEach(key => {
+        const foldername =
+          key === "other" ? "unlabelled" : labelMeta[key].classname;
+        const folder = zip.folder(foldername);
+        labelObj[key].forEach(d => {
+          const prom = this.loadDocText(d).then(text => {
+            folder.file(`${d.title.slice(0, 30)}.txt`, text);
+          });
+          promiseArr.push(prom);
+        });
+      });
+
+      Promise.all(promiseArr).then(() => {
+        zip.generateAsync({ type: "blob" }).then(content => {
+          saveBlob(`exported-data.zip`, content);
+          this.exportLoading = false;
+          store.commit("enqueueNotification", {
+            type: "success",
+            text: `${this.documents.length} documents were exported!`
+          });
+        });
+      });
+    },
+
+    saveImportedDocuments(documents, labelId) {
+      const label = labelId === -1 ? null : labelId;
+
+      store
+        .dispatch("importDocumentsToProject", { documents, label })
+        .then(() => {
+          this.importLoaded = true;
+        });
+    },
+
+    closeImportDialog() {
+      this.importDialog = false;
     }
   }
 };

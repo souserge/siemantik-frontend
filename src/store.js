@@ -61,6 +61,14 @@ export default new Vuex.Store({
         ? state.languages[state.currentProject.data.language]
         : getProjectProp("language")(state),
 
+    currentProjectLabelsDisplay: state =>
+      (state.currentProject.data.labels || []).map(
+        ({ id, classname, display_name }) => ({
+          value: id,
+          text: display_name ? `${display_name} (${classname})` : classname
+        })
+      ),
+
     currentProjectLabels: state => state.currentProject.data.labels || [],
 
     currentProjectDocuments: state => state.currentProject.data.documents || [],
@@ -188,8 +196,13 @@ export default new Vuex.Store({
       data.description = description;
       data.classifier = classifier;
       data.language = language;
+    },
+
+    setDocTextInCurrentProject(state, { doc, text }) {
+      Vue.set(doc, "text", text);
     }
   },
+
   actions: {
     loadProject({ commit }, projectId) {
       commit("startLoadingCurrentProject");
@@ -369,9 +382,15 @@ export default new Vuex.Store({
         });
     },
 
-    editDocInProject({ commit, state }, { id, text, title, label }) {
+    editDocInProject({ commit }, { id, text, title, label }) {
+      const is_set_manually = label !== null && label !== undefined;
       return apiAxios
-        .patch(`documents/${id}/`, { text, title, label })
+        .patch(`documents/${id}/`, {
+          text,
+          title,
+          label,
+          is_set_manually
+        })
         .then(({ data }) => {
           commit("editDocInCurrentProject", data);
 
@@ -417,6 +436,52 @@ export default new Vuex.Store({
           });
           return Promise.reject();
         });
+    },
+
+    deleteProject({ commit, dispatch, state }) {
+      const data = state.currentProject.data;
+
+      return apiAxios
+        .delete(`projects/${data.id}/`)
+        .then(() => {
+          dispatch("unloadProject");
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Project "${data.name}" was deleted. Sad to see you go :(`
+          });
+          return data;
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't delete project "${
+              data.name
+            }". Maybe, that's for the better? ;)`
+          });
+          return Promise.reject(data);
+        });
+    },
+
+    getDocTextInProject: async ({ commit, state }, docId) => {
+      if (
+        state.currentProject.documentsLoadingState ===
+        LOADING_STATES.LOAD_SUCCESS
+      ) {
+        const doc = state.currentProject.data.documents.find(
+          d => d.id === docId
+        );
+        if (doc !== null) {
+          if (doc.text !== null && doc.text !== undefined) {
+            return doc.text;
+          } else {
+            return apiAxios.get(`documents/${docId}/`).then(({ data }) => {
+              commit("setDocTextInCurrentProject", { doc, text: data.text });
+              return doc.text;
+            });
+          }
+        }
+      }
+      return Promise.reject("Couldn't load the text of this document");
     }
   }
 });

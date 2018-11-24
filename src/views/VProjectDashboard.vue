@@ -1,12 +1,47 @@
 <template>
-  <v-layout row wrap>
-    <v-flex xs12>
+<v-layout row wrap style="background-color: white">
+    <v-flex xs6>
       <v-card flat>
         <v-card-title style="font-weight: bold">
           Description:
         </v-card-title>
         <v-card-text>
           {{ description }}
+        </v-card-text>
+      </v-card>
+    </v-flex>
+    <v-flex xs6>
+      <v-card flat>
+        <table id="statsTable">
+          <tr>
+            <td class="statsTableHeader">Number of classes (labels):</td>
+            <td>{{ numLabels }}</td>
+          </tr>
+          <tr>
+            <td class="statsTableHeader">Number of documents:</td>
+            <td>{{ numDocs }}</td>
+          </tr>
+          <tr>
+            <td>... of which manually labelled:</td>
+            <td>{{ numLabelledDocs }}</td>
+          </tr>
+          <tr>
+            <td class="statsTableHeader">Number of documents by class</td>
+            <td></td>
+          </tr>
+          <tr v-for="label in labels" :key="label.value">
+            <td>- {{ label.text }}:</td>
+            <td>{{ numDocsOfLabel(label.value) }}</td>
+          </tr>
+        </table>
+
+
+        <v-card-text>
+          <b></b> 
+        </v-card-text>
+        <v-card-text>
+          <b></b> <br/>
+          
         </v-card-text>
       </v-card>
     </v-flex>
@@ -49,6 +84,14 @@
     >
       Edit Project
     </v-btn>
+    <v-btn 
+      @click.stop="openDeleteDialog"
+      class="mb-2"
+      color="error"
+      flat
+    >
+      Delete Project
+    </v-btn>
     </v-toolbar>
 
     <v-edit-dialog
@@ -63,16 +106,22 @@
 
     <v-confirm-dialog
       :dialog="deleteDialog"
+      @cancel="closeDeleteDialog"
+      @confirm="openDeleteDeleteDialog"
     >
-      Are you sure you want to delete "{{ project.name }}" project?<br/>
-      This action is is irreversible!
+      <p>Are you sure you want to delete "{{ project.name }}" project?</p>
+      <p>This action is irreversible!</p>
     </v-confirm-dialog>
     <v-confirm-dialog
+      @cancel="closeDeleteDialog"
+      @confirm="deleteProject"
       :dialog="deleteDeleteDialog"
       reverse-colors
     >
-      Are you really sure?<br/>
-      <strong> All project data will be lost!</strong>
+      <p>Are you really sure?</p>
+
+      <p style="font-weight: bold;">All project data will be lost!</p>
+
       <template slot="cancel">
         Take me back to safety!
       </template>
@@ -80,7 +129,6 @@
         yes, delete
       </template>
     </v-confirm-dialog>
-
   </v-layout>
 </template>
 
@@ -129,7 +177,7 @@ export default {
         }
       ],
       editDialog: false,
-      deleteDeleteDialog: true,
+      deleteDeleteDialog: false,
       deleteDialog: false
     };
   },
@@ -151,6 +199,28 @@ export default {
   },
 
   computed: {
+    documents: () => store.getters.currentProjectDocuments,
+
+    labels: () => store.getters.currentProjectLabelsDisplay,
+
+    numLabels() {
+      return this.labels.length;
+    },
+
+    numDocs() {
+      return this.documents.length;
+    },
+
+    labelledDocs() {
+      return this.documents.filter(
+        doc => doc.label !== null && doc.is_set_manually
+      );
+    },
+
+    numLabelledDocs() {
+      return this.labelledDocs.length;
+    },
+
     project: () => Object.assign({}, store.state.currentProject.data),
 
     classifierOptions() {
@@ -162,13 +232,23 @@ export default {
     },
 
     language: () => store.getters.currentProjectLanguageDisplay || "Not set",
+
     classifier: () =>
       store.getters.currentProjectClassifierDisplay || "Not set",
+
     description: () =>
       store.getters.currentProjectDescriptionDisplay || "No description"
   },
 
   methods: {
+    docsOfLabel(labelId) {
+      return this.labelledDocs.filter(doc => doc.label === labelId);
+    },
+
+    numDocsOfLabel(labelId) {
+      return this.docsOfLabel(labelId).length;
+    },
+
     openEditDialog() {
       this.editDialog = true;
     },
@@ -181,10 +261,49 @@ export default {
       store.dispatch("editProject", this.project);
 
       this.closeEditDialog();
+    },
+
+    openDeleteDialog() {
+      this.deleteDeleteDialog = false;
+      this.deleteDialog = true;
+    },
+
+    openDeleteDeleteDialog() {
+      this.deleteDialog = false;
+      this.deleteDeleteDialog = true;
+    },
+
+    closeDeleteDialog() {
+      this.deleteDialog = false;
+      this.deleteDeleteDialog = false;
+    },
+
+    deleteProject() {
+      store.dispatch("deleteProject").then(() => {
+        this.$router.push({ name: "projects" });
+      });
     }
   }
 };
 </script>
 
 <style>
+#statsTable {
+  margin: auto;
+}
+
+#statsTable td {
+  text-align: right;
+  width: 50%;
+  line-height: 1.8em;
+}
+
+#statsTable .statsTableHeader {
+  font-weight: bold;
+  text-align: left;
+}
+
+#statsTable tr td:last-child {
+  text-align: center;
+}
 </style>

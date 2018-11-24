@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <the-notification-handler></the-notification-handler>
-    <v-toolbar app>
+    <v-toolbar app id="nav">
       <v-toolbar-title class="headline">
         <span>Semantic Text Classification Service</span>
       </v-toolbar-title>
@@ -44,10 +44,18 @@ export default {
 
 <style>
 #content {
-  background: url("./assets/pattern.jpg") repeat;
+  background: linear-gradient(#ece9e6, #ffffff);
+}
+
+#nav {
+  background: #f7f3f1;
 }
 
 a {
   text-decoration: none;
+}
+
+body {
+  font-size: 15px;
 }
 </style>

@@ -1,5 +1,6 @@
 <template>
 <v-layout column color="white">
+<v-card>
   <v-toolbar flat color="white">
     <v-toolbar-title>
       {{ name }}
@@ -18,9 +19,10 @@
       <v-tab :to="'labels'">Labels</v-tab>
     </v-tabs>
   </v-toolbar>
-  <v-layout column color="white">
+  <v-layout column color="white" class="mt-4">
     <router-view></router-view>
   </v-layout>
+</v-card>
 </v-layout>
 </template>
 
