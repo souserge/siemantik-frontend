@@ -1,7 +1,7 @@
 <template>
-<v-layout column color="white">
+<v-layout column>
 <v-card>
-  <v-toolbar flat color="white">
+  <v-toolbar flat>
     <v-toolbar-title>
       {{ name }}
     </v-toolbar-title>
