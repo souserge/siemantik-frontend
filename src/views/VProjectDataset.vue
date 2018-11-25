@@ -19,14 +19,6 @@
       color="primary"
       dark
       class="mb-2"
-    >
-      Label data
-    </v-btn>
-
-    <v-btn
-      color="primary"
-      dark
-      class="mb-2"
       @click="openImportDialog"
       :loading="importLoading"
     >
