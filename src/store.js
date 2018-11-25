@@ -492,6 +492,16 @@ export default new Vuex.Store({
         })
         .then(({ data }) => {
           data.forEach(doc => commit("addNewDocToCurrentProject", doc));
+          commit("enqueueNotification", {
+            type: "success",
+            text: `${data.length} documents were imported to the project!`
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Oops, couldn't import the documents :(`
+          });
         });
     }
   }

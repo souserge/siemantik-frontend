@@ -28,6 +28,7 @@
       dark
       class="mb-2"
       @click="openImportDialog"
+      :loading="importLoading"
     >
       Import
     </v-btn>
@@ -70,7 +71,7 @@
       :dialog="importDialog"
       :labels="importLabels"
       @cancel="closeImportDialog"
-      @documentsLoaded="saveImportedDocuments"
+      @upload="saveImportedDocuments"
     ></v-import-dialog>
   </v-toolbar>
 
@@ -201,7 +202,7 @@ export default {
       ],
       exportLoading: false,
       importDialog: false,
-      importLoaded: false
+      importLoading: false
     };
   },
 
@@ -381,12 +382,14 @@ export default {
     },
 
     saveImportedDocuments(documents, labelId) {
+      this.closeImportDialog();
       const label = labelId === -1 ? null : labelId;
+      this.importLoading = true;
 
       store
         .dispatch("importDocumentsToProject", { documents, label })
         .then(() => {
-          this.importLoaded = true;
+          this.importLoading = false;
         });
     },
 

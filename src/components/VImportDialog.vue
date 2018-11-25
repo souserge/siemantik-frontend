@@ -23,26 +23,40 @@
           class="mb-4"
         ></v-select>
         <!--UPLOAD-->
-        <form enctype="multipart/form-data" novalidate v-if="isInitial || isSaving">
+        <form enctype="multipart/form-data" novalidate>
           <div class="dropbox">
             <input
               type="file"
               multiple
-              :name="uploadFieldName"
-              :disabled="isSaving"
-              @change="filesChange($event.target.name, $event.target.files)"
-              class="input-file"
+              @change="readFiles($event.target.name, $event.target.files)"
+              name="Select documents"
+              style="display: none"
+              ref="uploadInput"
             >
           </div>
+          <v-btn
+            @click="selectFiles"
+            :loading="state === STATES.SELECTING"
+            :disabled="state > STATES.SELECTING"
+          >
+            Select Documents...
+          </v-btn>
         </form>
+        <v-btn @click="reselectDocs" small flat v-if="state === STATES.SELECTED">
+          <span style="opacity: 0.6;text-transform:capitalize">Reselect</span>
+        </v-btn>
       </v-form>
       <v-progress-linear v-if="importProgress > 0" v-model="importProgressPercentage"></v-progress-linear>
-      <span v-if="importProgress === numImportedDocs" class="headline">Upload done! {{ numImportedDocs }} documents were imported!</span>
+      <span v-if="state === STATES.SELECTED"><b>{{ numImportedDocs }}</b> {{ numImportedDocs > 1 ? 'documents were' : 'document was' }} selected! Click "Upload" to save changes.</span>
     </v-card-text>
 
     <v-card-actions>
       <v-spacer></v-spacer>
       <v-btn color="blue darken-1" flat @click="cancel">Cancel</v-btn>
+      <v-btn color="primary" :disabled="state < STATES.SELECTED" @click="uploadDocuments">
+        Upload
+        <!-- <v-icon right>cloud_upload</v-icon> -->
+      </v-btn>
     </v-card-actions>
   </v-card>
 </v-dialog>
@@ -50,6 +64,12 @@
 
 <script>
 const processFileName = n => n.split(".")[0].trim();
+
+const STATES = {
+  NOT_STARTED: 0,
+  SELECTING: 1,
+  SELECTED: 2
+};
 
 function fileToText(file) {
   return new Promise((resolve, reject) => {
@@ -87,13 +107,12 @@ export default {
 
   data() {
     return {
-      fileCount: 0,
-      isInitial: true,
-      isSaving: false,
-      uploadFieldName: "Import data",
+      state: STATES.NOT_STARTED,
       importProgress: 0,
       numImportedDocs: -1,
-      label: this.initLabel
+      label: this.initLabel,
+      STATES,
+      documents: []
     };
   },
 
@@ -104,11 +123,33 @@ export default {
   },
 
   methods: {
+    resetImport() {
+      this.label = this.initLabel;
+      this.reselectDocs();
+    },
+
+    reselectDocs() {
+      this.state = STATES.NOT_STARTED;
+      this.importProgress = 0;
+      this.numImportedDocs = 0;
+      this.documents = [];
+    },
+
     cancel() {
+      this.resetImport();
       this.$emit("cancel");
     },
 
-    filesChange(name, files) {
+    selectFiles() {
+      this.$refs.uploadInput.click();
+    },
+
+    readFiles(name, files) {
+      if (files.length === 0) {
+        return;
+      }
+
+      this.state = STATES.SELECTING;
       this.numImportedDocs = files.length;
       Promise.all(
         filesToTexts(files).map(f =>
@@ -118,8 +159,14 @@ export default {
           })
         )
       ).then(data => {
-        this.$emit("documentsLoaded", data, this.label);
+        this.state = STATES.SELECTED;
+        this.documents = data;
       });
+    },
+
+    uploadDocuments() {
+      this.$emit("upload", this.documents, this.label);
+      this.resetImport();
     }
   }
 };

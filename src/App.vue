@@ -44,11 +44,11 @@ export default {
 
 <style>
 #content {
-  background: linear-gradient(#ece9e6, #ffffff);
+  background: linear-gradient(#f4c4f3, #fc67fa);
 }
 
 #nav {
-  background: #f7f3f1;
+  background: #f4c4f3;
 }
 
 a {
