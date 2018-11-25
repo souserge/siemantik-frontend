@@ -1,6 +1,6 @@
 <template>
-<v-layout column>
-<v-card>
+<v-layout class="mt-3" column>
+<v-card style="border-radius: 5px">
   <v-toolbar flat>
     <v-toolbar-title>
       {{ name }}

@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <the-notification-handler></the-notification-handler>
-    <v-toolbar app id="nav">
+    <v-toolbar app id="nav" dark>
       <v-toolbar-title class="headline">
         <span>Semantic Text Classification Service</span>
       </v-toolbar-title>
@@ -15,7 +15,6 @@
 
     <v-content id="content">
       <v-container fluid>
-        
         <v-slide-y-transition mode="out-in">
           <router-view/>
         </v-slide-y-transition>
@@ -44,11 +43,11 @@ export default {
 
 <style>
 #content {
-  background: linear-gradient(#f4c4f3, #fc67fa);
+  background: linear-gradient(#fd746c, #2c3e50);
 }
 
 #nav {
-  background: #f4c4f3;
+  background: #2c3e50;
 }
 
 a {
