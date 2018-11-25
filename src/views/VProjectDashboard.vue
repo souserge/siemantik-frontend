@@ -2,16 +2,17 @@
 <v-layout row wrap style="background-color: white">
     <v-flex xs6>
       <v-card flat>
-        <v-card-title style="font-weight: bold">
-          Description:
-        </v-card-title>
         <v-card-text>
-          {{ description }}
+        <span style="font-weight: bold">Description: </span>
+        <p>{{ description }}</p>
+
+        <span style="font-weight: bold">Language: </span>{{ language }}
         </v-card-text>
       </v-card>
     </v-flex>
     <v-flex xs6>
       <v-card flat>
+        <v-card-text>
         <table id="statsTable">
           <tr>
             <td class="statsTableHeader">Number of classes (labels):</td>
@@ -34,64 +35,27 @@
             <td>{{ numDocsOfLabel(label.value) }}</td>
           </tr>
         </table>
+        </v-card-text>
+      </v-card>
+    </v-flex>
 
-
-        <v-card-text>
-          <b></b> 
-        </v-card-text>
-        <v-card-text>
-          <b></b> <br/>
-          
-        </v-card-text>
-      </v-card>
-    </v-flex>
-    <v-flex xs6>
-      <v-card flat text-xs-center>
-        <v-card-text>
-          <span style="font-weight: bold">Language: </span>
-          {{ language }}
-        </v-card-text>
-      </v-card>
-    </v-flex>
-    <v-flex xs6>
-      <v-card flat text-xs-center>
-        <v-card-text>
-          <span style="font-weight: bold">Classifier: </span>
-          {{ classifier }}
-        </v-card-text>
-      </v-card>
-    </v-flex>
-    <v-toolbar flat color="white">
-    <v-btn class="mb-2">
-      Train classifier
-    </v-btn>
-    <v-btn class="mb-2">
-      Classify unlabelled data
-    </v-btn>
-    <v-spacer></v-spacer>
-    <!--
-    <v-btn class="mb-2">
-      Import model
-    </v-btn>
-    <v-btn class="mb-2">
-      Export model
-    </v-btn>
-    -->
-    <v-btn 
-      @click.stop="openEditDialog"
-      class="mb-2"
-      color="primary"
-    >
-      Edit Project
-    </v-btn>
-    <v-btn 
-      @click.stop="openDeleteDialog"
-      class="mb-2"
-      color="error"
-      flat
-    >
-      Delete Project
-    </v-btn>
+    <v-toolbar class="mt-5" flat color="white">
+      <v-spacer></v-spacer>
+      <v-btn 
+        @click.stop="openEditDialog"
+        class="mb-2"
+        color="primary"
+      >
+        Edit Project
+      </v-btn>
+      <v-btn 
+        @click.stop="openDeleteDialog"
+        class="mb-2"
+        color="error"
+        flat
+      >
+        Delete Project
+      </v-btn>
     </v-toolbar>
 
     <v-edit-dialog
@@ -164,12 +128,6 @@ export default {
           type: "textarea"
         },
         {
-          value: "classifier",
-          text: "Classifier",
-          type: "options",
-          options: keyValueObjToValueTextList(store.state.classifiers)
-        },
-        {
           value: "language",
           text: "Language",
           type: "options",
@@ -183,13 +141,6 @@ export default {
   },
 
   watch: {
-    classifierOptions(options) {
-      const classifierAttr = this.attributes.find(
-        attr => attr.value === "classifier"
-      );
-      classifierAttr.options = options;
-    },
-
     languageOptions(options) {
       const languageAttr = this.attributes.find(
         attr => attr.value === "language"
@@ -223,18 +174,11 @@ export default {
 
     project: () => Object.assign({}, store.state.currentProject.data),
 
-    classifierOptions() {
-      return keyValueObjToValueTextList(store.state.classifiers);
-    },
-
     languageOptions() {
       return keyValueObjToValueTextList(store.state.languages);
     },
 
     language: () => store.getters.currentProjectLanguageDisplay || "Not set",
-
-    classifier: () =>
-      store.getters.currentProjectClassifierDisplay || "Not set",
 
     description: () =>
       store.getters.currentProjectDescriptionDisplay || "No description"

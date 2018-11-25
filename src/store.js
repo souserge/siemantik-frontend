@@ -30,7 +30,7 @@ export default new Vuex.Store({
     languages: {
       ru: "Russian"
     },
-    classifiers: {
+    algorithms: {
       nb: "Naive Bayes"
     },
     currentProject: {
@@ -41,7 +41,6 @@ export default new Vuex.Store({
         name: null,
         language: null,
         description: null,
-        classifier: null,
         labels: null,
         documents: null
       }
@@ -53,8 +52,6 @@ export default new Vuex.Store({
     currentProjectNameDisplay: getProjectProp("name"),
 
     currentProjectDescriptionDisplay: getProjectProp("description"),
-
-    currentProjectClassifierDisplay: getProjectProp("classifier"),
 
     currentProjectLanguageDisplay: state =>
       state.currentProject.loadingState === LOADING_STATES.LOAD_SUCCESS
@@ -86,12 +83,11 @@ export default new Vuex.Store({
   mutations: {
     setCurrentProject(
       { currentProject },
-      { id, name, language, classifier, description, labels }
+      { id, name, language, description, labels }
     ) {
       currentProject.data.id = id;
       currentProject.data.name = name;
       currentProject.data.language = language;
-      currentProject.data.classifier = classifier;
       currentProject.data.description = description;
       currentProject.data.labels = labels;
 
@@ -190,11 +186,10 @@ export default new Vuex.Store({
       {
         currentProject: { data }
       },
-      { name, description, classifier, language }
+      { name, description, language }
     ) {
       data.name = name;
       data.description = description;
-      data.classifier = classifier;
       data.language = language;
     },
 
@@ -209,18 +204,15 @@ export default new Vuex.Store({
 
       const projectPromise = apiAxios
         .get(`projects/${projectId}/`)
-        .then(
-          ({ data: { name, language, classifier, description, labels } }) => {
-            commit("setCurrentProject", {
-              id: projectId,
-              name,
-              description,
-              language,
-              classifier,
-              labels
-            });
-          }
-        );
+        .then(({ data: { name, language, description, labels } }) => {
+          commit("setCurrentProject", {
+            id: projectId,
+            name,
+            description,
+            language,
+            labels
+          });
+        });
 
       const documentsPromise = apiAxios
         .get(`projects/${projectId}/documents/`)
@@ -413,12 +405,11 @@ export default new Vuex.Store({
         });
     },
 
-    editProject({ commit }, { id, name, description, classifier, language }) {
+    editProject({ commit }, { id, name, description, language }) {
       return apiAxios
         .patch(`projects/${id}/`, {
           name,
           description,
-          classifier,
           language
         })
         .then(({ data }) => {

@@ -25,6 +25,11 @@
               :items="language.options"
               :rules="language.rules"
             ></v-select>
+            <v-textarea
+              v-model="description.value"
+              :label="description.text"
+              :rows="10"
+            ></v-textarea>
           </v-form>
     </v-card-text>
 
@@ -39,34 +44,37 @@
 
 <script>
 export default {
-
   props: {
     dialog: {
       type: Boolean,
-      default: false,
-    },
+      default: false
+    }
   },
 
   data() {
     return {
       isFormValid: false,
       name: {
-        text: 'Name',
-        value: '',
+        text: "Name",
+        value: "",
         rules: [
-          v => !!v || 'Name must be specified',
-          v => v.length < 101 || 'Name is too long (max. 100 characters)'
+          v => !!v || "Name must be specified",
+          v => v.length < 101 || "Name is too long (max. 100 characters)"
         ]
       },
       language: {
-        text: 'Language',
-        value: 'ru',
+        text: "Language",
+        value: "ru",
         options: [
           {
-            text: 'Russian',
-            value: 'ru'
+            text: "Russian",
+            value: "ru"
           }
         ]
+      },
+      description: {
+        text: "Description",
+        value: ""
       }
     };
   },
@@ -74,13 +82,17 @@ export default {
   methods: {
     create() {
       if (this.$refs.form.validate()) {
-        this.$emit('create', { name: this.name.value, language: this.language.value });
+        this.$emit("create", {
+          name: this.name.value,
+          language: this.language.value,
+          description: this.description.value
+        });
       }
     },
 
     close() {
-      this.$emit('cancel');
-    },
-  },
+      this.$emit("cancel");
+    }
+  }
 };
 </script>

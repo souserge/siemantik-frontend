@@ -22,7 +22,7 @@
       @click="openImportDialog"
       :loading="importLoading"
     >
-      Import
+      Bulk Upload
     </v-btn>
 
     <v-btn
@@ -355,7 +355,7 @@ export default {
         const folder = zip.folder(foldername);
         labelObj[key].forEach(d => {
           const prom = this.loadDocText(d).then(text => {
-            folder.file(`${d.title.slice(0, 30)}.txt`, text);
+            folder.file(`${d.title.replace("/", " ")}.txt`, text);
           });
           promiseArr.push(prom);
         });

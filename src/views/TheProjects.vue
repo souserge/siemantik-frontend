@@ -32,8 +32,8 @@
         <v-container fill-height>
           <v-layout row wrap align-center>
             <v-flex class="text-xs-center">
-              <v-btn icon x-large @click="createProjectDialog = true">
-                <v-icon x-large>add</v-icon>
+              <v-btn icon dark x-large @click="createProjectDialog = true">
+                <v-icon dark x-large>add</v-icon>
               </v-btn>
             </v-flex>
           </v-layout>

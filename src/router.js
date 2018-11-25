@@ -3,8 +3,9 @@ import Router from "vue-router";
 import TheProjects from "./views/TheProjects";
 import VProject from "./views/VProject";
 import VProjectDashboard from "./views/VProjectDashboard";
-import VProjectDataset from "./views/VProjectDataset";
+import VProjectDocuments from "./views/VProjectDocuments";
 import VProjectLabels from "./views/VProjectLabels";
+import VProjectModels from "./views/VProjectModels.vue";
 
 Vue.use(Router);
 
@@ -26,12 +27,16 @@ export default new Router({
           component: VProjectDashboard
         },
         {
-          path: "dataset",
-          component: VProjectDataset
+          path: "documents",
+          component: VProjectDocuments
         },
         {
           path: "labels",
           component: VProjectLabels
+        },
+        {
+          path: "models",
+          component: VProjectModels
         }
       ]
     }

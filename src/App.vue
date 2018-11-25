@@ -41,13 +41,16 @@ export default {
 };
 </script>
 
-<style>
+<style lang="scss">
+$dark-color: #2c3e50;
+$bright-color: #fd746c;
+
 #content {
-  background: linear-gradient(#fd746c, #2c3e50);
+  background: linear-gradient($bright-color, $dark-color);
 }
 
 #nav {
-  background: #2c3e50;
+  background-color: $dark-color;
 }
 
 a {
@@ -56,5 +59,6 @@ a {
 
 body {
   font-size: 15px;
+  background-color: $dark-color;
 }
 </style>

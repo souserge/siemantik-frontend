@@ -8,7 +8,7 @@
   <v-card>
     <v-card-title>
       <span class="headline">
-        Import data
+        Upload multiple documents
       </span>
     </v-card-title>
 

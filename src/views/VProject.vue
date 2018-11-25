@@ -15,8 +15,10 @@
       <v-tab :to="{ name: 'project' }">
         Dashboard
       </v-tab>
-      <v-tab :to="'dataset'">Dataset</v-tab>
+      <v-tab :to="'documents'">Documents</v-tab>
       <v-tab :to="'labels'">Labels</v-tab>
+      <v-tab :to="'models'">Models</v-tab>
+
     </v-tabs>
   </v-toolbar>
   <v-layout column color="white" class="mt-4">
