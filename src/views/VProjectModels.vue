@@ -5,46 +5,59 @@
     <v-btn
       class="mb-2"
       color="primary"
-      @click.stop="openNewLabelDialog"
+      @click.stop="openNewModelDialog"
     >
       New Model
     </v-btn>
 
     <v-edit-dialog
       :attributes="editableAttributes"
-      :dialog="newEditLabelDialog"
+      :dialog="newEditModelDialog"
       @save="saveNewEdit"
       @cancel="closeNewEditDialog"
-      :item="newEditLabelItem"
+      :item="newEditModelItem"
     >
-      Create new model
+      Create/Edit new model
     </v-edit-dialog>
     
     <v-confirm-dialog
-      :dialog="deleteLabelDialog"
-      @confirm="deleteLabel"
+      :dialog="deleteModelDialog"
+      @confirm="deleteModel"
       @cancel="closeDeleteDialog"
     >
-      Are you sure you want to delete this Model?
-      <template v-if="deleteLabelItem !== null" slot="additional-info">
-        Classname: {{ deleteLabelItem.classname }} <br/>
-        Display name: {{ deleteLabelItem.display_name || "None" }}
-      </template>
+      Are you sure you want to delete model "{{ 
+        deleteModelItem !== null ? deleteModelItem.name || deleteModelItem.id : ''
+      }}"?
     </v-confirm-dialog>
   </v-toolbar>
   <v-data-table
     :headers="headers"
-    :items="labels"
+    :items="models"
   >
     <template slot="items" slot-scope="props">
       <td>{{ props.item.id }}</td>
-      <td>{{ props.item.classname }}</td>
-      <td>{{ props.item.display_name }}</td>
+      <td>{{ props.item.name }}</td>
+      <td>{{ getAlgorithmName(props.item.used_algorithm) }}</td>
+      <td>{{ getModelStatusName(props.item.model_status) }}</td>
+      <td>
+        <v-btn
+          @click="train(props.item)"
+          :disabled="props.item.model_status === MODEL_STATUSES.TRAINING"
+        >
+          train
+        </v-btn>
+        <v-btn
+          @click="classify(props.item)"
+          :disabled="props.item.model_status === MODEL_STATUSES.NOT_TRAINED"
+        >
+          classify
+        </v-btn>
+      </td>
       <td>
         <v-icon
           small
           class="mr-2"
-          @click.stop="openEditLabelDialog(props.item)"
+          @click.stop="openEditModelDialog(props.item)"
         >
           edit
         </v-icon>
@@ -64,7 +77,7 @@
 
 <script>
 import store from "@/store";
-
+import { MODEL_STATUSES } from "@/store";
 import VEditDialog from "@/components/VEditDialog";
 import VConfirmDialog from "@/components/VConfirmDialog";
 
@@ -76,20 +89,35 @@ export default {
 
   data: () => ({
     attributes: [
-      { text: "ID", value: "id", visible: true, editable: false },
-      { text: "Class name", value: "classname" },
-      { text: "Display name", value: "display_name" }
+      { text: "ID", value: "id", editable: false },
+      { text: "Name", value: "name" },
+      {
+        text: "Used algorithm",
+        value: "used_algorithm",
+        type: "options",
+        options: store.getters.algorithmChoicesDisplay,
+        editable: false
+      },
+      {
+        text: "Status",
+        value: "model_status",
+        editable: false
+      }
     ],
-    newEditLabelDialog: false,
-    newEditLabelItem: {},
-    newEditLabelDialogIsNew: false,
-    deleteLabelDialog: false,
-    deleteLabelItem: null,
-    additionalHeaders: [{ text: "Actions", value: "actions", sortable: false }]
+    newEditModelDialog: false,
+    newEditModelItem: {},
+    newEditModelDialogIsNew: false,
+    deleteModelDialog: false,
+    deleteModelItem: null,
+    additionalHeaders: [
+      { text: "Classifier", value: "classifier", sortable: false },
+      { text: "Actions", value: "actions", sortable: false }
+    ],
+    MODEL_STATUSES
   }),
 
   computed: {
-    labels: () => store.getters.currentProjectLabels,
+    models: () => store.getters.currentProjectModels,
 
     visibleAttributes() {
       return this.attributes.filter(attr => attr.visible !== false);
@@ -105,47 +133,71 @@ export default {
   },
 
   methods: {
-    openNewLabelDialog() {
-      this.newEditLabelDialog = true;
-      this.newEditLabelDialogIsNew = true;
+    train(model) {
+      const documents = store.getters.currentProjectDocuments
+        .filter(d => d.is_set_manually)
+        .map(d => d.id);
+      store.dispatch("trainModel", { id: model.id, documents });
     },
 
-    openEditLabelDialog(label) {
-      this.newEditLabelItem = label;
-      this.newEditLabelDialog = true;
-      this.newEditLabelDialogIsNew = false;
+    classify(model) {
+      const documents = store.getters.currentProjectDocuments
+        .filter(d => !d.is_set_manually)
+        .map(d => d.id);
+      store.dispatch("classifyDocuments", { id: model.id, documents });
+    },
+
+    getAlgorithmName(alg) {
+      return store.state.algorithms[alg];
+    },
+
+    getModelStatusName(status) {
+      return store.state.modelStatuses[status];
+    },
+
+    openNewModelDialog() {
+      this.newEditModelDialog = true;
+      this.newEditModelDialogIsNew = true;
+      this.attributes.find(a => a.value === "used_algorithm").editable = true;
+    },
+
+    openEditModelDialog(model) {
+      this.newEditModelItem = model;
+      this.newEditModelDialog = true;
+      this.newEditModelDialogIsNew = false;
     },
 
     closeNewEditDialog() {
-      this.newEditLabelDialog = false;
-      if (!this.newEditLabelDialogIsNew) {
-        this.newEditLabelItem = {};
+      this.newEditModelDialog = false;
+      this.attributes.find(a => a.value === "used_algorithm").editable = false;
+      if (!this.newEditModelDialogIsNew) {
+        this.newEditModelItem = {};
       }
     },
 
     saveNewEdit() {
-      if (this.newEditLabelDialogIsNew) {
+      if (this.newEditModelDialogIsNew) {
         store
-          .dispatch("addNewLabelToProject", this.newEditLabelItem)
-          .then(() => (this.newEditLabelItem = {}));
+          .dispatch("addNewModelToProject", this.newEditModelItem)
+          .then(() => (this.newEditModelItem = {}));
       } else {
-        store.dispatch("editLabelInProject", this.newEditLabelItem);
+        store.dispatch("editModelInProject", this.newEditModelItem);
       }
       this.closeNewEditDialog();
     },
 
-    openDeleteDialog(label) {
-      this.deleteLabelDialog = true;
-      this.deleteLabelItem = label;
+    openDeleteDialog(model) {
+      this.deleteModelDialog = true;
+      this.deleteModelItem = model;
     },
 
     closeDeleteDialog() {
-      this.deleteLabelDialog = false;
-      this.deleteLabelItem = null;
+      this.deleteModelDialog = false;
+      this.deleteModelItem = null;
     },
 
-    deleteLabel() {
-      store.dispatch("deleteLabelFromProject", this.deleteLabelItem.id);
+    deleteModel() {
+      store.dispatch("deleteModelFromProject", this.deleteModelItem.id);
       this.closeDeleteDialog();
     }
   }

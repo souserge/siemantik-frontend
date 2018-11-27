@@ -25,13 +25,26 @@ const getProjectProp = prop => state => {
 
 Vue.use(Vuex);
 
+export const MODEL_STATUSES = {
+  NOT_TRAINED: 0,
+  TRAINING: 1,
+  TRAINED: 2
+};
+
 export default new Vuex.Store({
   state: {
     languages: {
       ru: "Russian"
     },
     algorithms: {
-      nb: "Naive Bayes"
+      nb: "Naive Bayes",
+      svm: "Support Vector Machine",
+      mlp: "Multi Layer Perceprton"
+    },
+    modelStatuses: {
+      [MODEL_STATUSES.NOT_TRAINED]: "Not trained",
+      [MODEL_STATUSES.TRAINING]: "Training...",
+      [MODEL_STATUSES.TRAINED]: "Trained"
     },
     currentProject: {
       loadingState: LOADING_STATES.NOT_INITIATED,
@@ -42,7 +55,8 @@ export default new Vuex.Store({
         language: null,
         description: null,
         labels: null,
-        documents: null
+        documents: null,
+        models: null
       }
     },
     notificationQueue: []
@@ -69,6 +83,14 @@ export default new Vuex.Store({
     currentProjectLabels: state => state.currentProject.data.labels || [],
 
     currentProjectDocuments: state => state.currentProject.data.documents || [],
+
+    currentProjectModels: state => state.currentProject.data.models || [],
+
+    algorithmChoicesDisplay: state =>
+      Object.keys(state.algorithms).map(k => ({
+        text: state.algorithms[k],
+        value: k
+      })),
 
     isCurrentProjectLoading: state =>
       state.currentProject.loadingState === LOADING_STATES.LOADING,
@@ -123,6 +145,10 @@ export default new Vuex.Store({
       currentProject.documentsLoadingState = LOADING_STATES.LOAD_SUCCESS;
     },
 
+    setCurrentProjectModels({ currentProject }, models) {
+      currentProject.data.models = models;
+    },
+
     deleteDocFromCurrentProject(
       {
         currentProject: {
@@ -145,6 +171,31 @@ export default new Vuex.Store({
     ) {
       const idxOfDeleted = labels.findIndex(l => l.id === labelId);
       labels.splice(idxOfDeleted, 1);
+    },
+
+    deleteModelFromCurrentProject({ currentProject }, modelId) {
+      const idxOfDeleted = currentProject.data.models.findIndex(
+        m => m.id === modelId
+      );
+      currentProject.data.models.splice(idxOfDeleted, 1);
+    },
+
+    addNewModelToCurrentProject(
+      {
+        currentProject: {
+          data: { models }
+        }
+      },
+      newModel
+    ) {
+      models.push(newModel);
+    },
+
+    editModelInCurrentProject({ currentProject }, newModel) {
+      const idxOfDeleted = currentProject.data.models.findIndex(
+        m => m.id === newModel.id
+      );
+      currentProject.data.models.splice(idxOfDeleted, 1, newModel);
     },
 
     addNewLabelToCurrentProject(
@@ -195,6 +246,23 @@ export default new Vuex.Store({
 
     setDocTextInCurrentProject(state, { doc, text }) {
       Vue.set(doc, "text", text);
+    },
+
+    completeModelTraining(state, { id, cv_accuracy }) {
+      const model = state.currentProject.data.models.find(m => m.id === id);
+      if (model) {
+        Vue.set(model, "model_status", MODEL_STATUSES.TRAINED);
+        Vue.set(model, "cv_accuracy", cv_accuracy);
+      }
+    },
+
+    startModelTraining(state, modelId) {
+      const model = state.currentProject.data.models.find(
+        m => m.id === modelId
+      );
+      if (model) {
+        Vue.set(model, "model_status", MODEL_STATUSES.TRAINING);
+      }
     }
   },
 
@@ -218,7 +286,15 @@ export default new Vuex.Store({
         .get(`projects/${projectId}/documents/`)
         .then(({ data }) => commit("setCurrentProjectDocuments", data));
 
-      return Promise.all([projectPromise, documentsPromise]).catch(() => {
+      const modelsPromise = apiAxios
+        .get(`projects/${projectId}/models/`)
+        .then(({ data }) => commit("setCurrentProjectModels", data));
+
+      return Promise.all([
+        projectPromise,
+        documentsPromise,
+        modelsPromise
+      ]).catch(() => {
         commit("failLoadingCurrentProject");
         commit("enqueueNotification", {
           type: "error",
@@ -453,6 +529,65 @@ export default new Vuex.Store({
         });
     },
 
+    addNewModelToProject({ commit, state }, { name, used_algorithm }) {
+      return apiAxios
+        .post(`projects/${state.currentProject.data.id}/models/`, {
+          name,
+          used_algorithm
+        })
+        .then(({ data }) => {
+          commit("addNewModelToCurrentProject", data);
+          commit("enqueueNotification", {
+            type: "success",
+            text: `A new model was added!`
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't add a new model :(`
+          });
+        });
+    },
+
+    editModelInProject({ commit }, { id, name }) {
+      return apiAxios
+        .patch(`models/${id}/`, {
+          name
+        })
+        .then(({ data }) => {
+          commit("editModelInCurrentProject", data);
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Model "${name}" was edited!`
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't change the name of this model to "${name}" :(`
+          });
+        });
+    },
+
+    deleteModelFromProject({ commit }, modelId) {
+      return apiAxios
+        .delete(`models/${modelId}/`)
+        .then(() => {
+          commit("deleteModelFromCurrentProject", modelId);
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Model "${name}" was deleted!`
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Couldn't delete model "${name}"`
+          });
+        });
+    },
+
     getDocTextInProject: async ({ commit, state }, docId) => {
       if (
         state.currentProject.documentsLoadingState ===
@@ -492,6 +627,25 @@ export default new Vuex.Store({
           commit("enqueueNotification", {
             type: "error",
             text: `Oops, couldn't import the documents :(`
+          });
+        });
+    },
+
+    trainModel({ commit }, { id, documents }) {
+      commit("startModelTraining", id);
+      commit("enqueueNotification", {
+        type: "info",
+        text: "Training process has started"
+      });
+      return apiAxios
+        .post(`models/${id}/train/`, { documents })
+        .then(({ data: { cv_accuracy } }) => {
+          commit("completeModelTraining", { id, cv_accuracy });
+          commit("enqueueNotification", {
+            type: "success",
+            text: `Model ID ${id} was successfully trained on ${
+              documents.length
+            } documents!`
           });
         });
     }
