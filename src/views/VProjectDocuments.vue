@@ -1,82 +1,63 @@
 <template>
-<v-layout column>
-  <v-toolbar flat color="white">
-    <v-toolbar-title>
-      <span class="px-2">#documents: {{ numberOfDocuments }},</span>
-      <span> #labeled (manually): {{ numberOfLabeledDocuments }}</span>
-    </v-toolbar-title>
-    <v-spacer></v-spacer>
-    <v-btn
-      @click.stop="openNewDocDialog"
-      color="primary"
-      dark
-      class="mb-2"
-    >
-      New document
-    </v-btn>
+  <v-layout column>
+    <v-toolbar flat color="white">
+      <v-toolbar-title>
+        <span class="px-2">#documents: {{ numberOfDocuments }},</span>
+        <span>#labeled (manually): {{ numberOfLabeledDocuments }}</span>
+      </v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-btn @click.stop="openNewDocDialog" color="primary" dark class="mb-2">New document</v-btn>
 
-    <v-btn
-      color="primary"
-      dark
-      class="mb-2"
-      @click="openImportDialog"
-      :loading="importLoading"
-    >
-      Bulk Upload
-    </v-btn>
+      <v-btn
+        color="primary"
+        dark
+        class="mb-2"
+        @click="openImportDialog"
+        :loading="importLoading"
+      >Bulk Upload</v-btn>
 
-    <v-btn
-      color="primary"
-      dark
-      class="mb-2"
-      @click.stop="exportDocuments"
-      :loading="exportLoading"
-    >
-      Export
-    </v-btn>
+      <v-btn
+        color="primary"
+        dark
+        class="mb-2"
+        @click.stop="exportDocuments"
+        :loading="exportLoading"
+      >Export</v-btn>
 
+      <v-edit-dialog
+        :attributes="editableAttributes"
+        :dialog="newEditDocDialog"
+        :item="newEditDocItem"
+        :max-width="800"
+        @save="saveNewEditDoc"
+        @cancel="closeNewEditDocDialog"
+      >Create/Edit document</v-edit-dialog>
 
-    <v-edit-dialog
-      :attributes="editableAttributes"
-      :dialog="newEditDocDialog"
-      :item="newEditDocItem"
-      :max-width="800"
-      @save="saveNewEditDoc"
-      @cancel="closeNewEditDocDialog"
-    >
-      Create/Edit document
-    </v-edit-dialog>
+      <v-confirm-dialog
+        :dialog="deleteDocDialog"
+        @confirm="deleteDoc"
+        @cancel="closeDeleteDialog"
+      >Are you sure you want to delete this document?
+        <template v-if="deleteDocItem !== null" slot="additional-info">
+          Title: {{ deleteDocItem.title }}
+          <br>
+          Label: {{ getLabelText(deleteDocItem.label) }}
+        </template>
+      </v-confirm-dialog>
 
-    <v-confirm-dialog
-      :dialog="deleteDocDialog"
-      @confirm="deleteDoc"
-      @cancel="closeDeleteDialog"
-    >
-      Are you sure you want to delete this document?
-      <template v-if="deleteDocItem !== null" slot="additional-info">
-        Title: {{ deleteDocItem.title }} <br/>
-        Label: {{ getLabelText(deleteDocItem.label) }}
-      </template>
-    </v-confirm-dialog>
+      <v-import-dialog
+        :dialog="importDialog"
+        :labels="labels"
+        @cancel="closeImportDialog"
+        @upload="saveImportedDocuments"
+      ></v-import-dialog>
+    </v-toolbar>
 
-    <v-import-dialog
-      :dialog="importDialog"
-      :labels="importLabels"
-      @cancel="closeImportDialog"
-      @upload="saveImportedDocuments"
-    ></v-import-dialog>
-  </v-toolbar>
-
-  <v-data-table
-    :headers="headers"
-    :items="documents"
-    :loading="isLoading"
-    expand
-  >
-    <template slot="items" slot-scope="props">
+    <v-data-table :headers="headers" :items="documents" :loading="isLoading" expand>
+      <template slot="items" slot-scope="props">
         <td @click="showText(props)">{{ props.item.id }}</td>
         <td @click="showText(props)">{{ props.item.title }}</td>
-        <td @click="showText(props)">
+        <td @click="showText(props)" :style="props.item.label === null ? 'opacity: 0.5' : ''">
           {{ getLabelText(props.item.label) }}
           <v-tooltip
             v-if="props.item.label !== null 
@@ -84,45 +65,28 @@
               && !props.item.is_set_manually"
             bottom
           >
-            <v-icon slot="activator">
-              notification_important
-            </v-icon>
+            <v-icon slot="activator">notification_important</v-icon>
             <span>This document was labelled automatically</span>
-          </v-tooltip>      
+          </v-tooltip>
         </td>
         <td>
-          <v-icon
-            small
-            class="mr-2"
-            @click.stop="openEditDocDialog(props.item)"
-          >
-            edit
-          </v-icon>
-          <v-icon
-            small
-            @click.stop="openDeleteDialog(props.item)"
-          >
-            delete
-          </v-icon>
+          <v-icon small class="mr-2" @click.stop="openEditDocDialog(props.item)">edit</v-icon>
+          <v-icon small @click.stop="openDeleteDialog(props.item)">delete</v-icon>
         </td>
-    </template>
-    <template slot="expand" slot-scope="props">
-      <v-progress-circular
-        v-if="!props.item.text"
-        style="margin: auto; display: block;"
-        indeterminate
-      ></v-progress-circular>
-      <v-card
-        v-else
-        flat
-      >
-        <v-card-text>{{ props.item.text }}</v-card-text>
-      </v-card>
-    </template>
-    <template slot="no-data">
-    </template>
-  </v-data-table>
-</v-layout>
+      </template>
+      <template slot="expand" slot-scope="props">
+        <v-progress-circular
+          v-if="!props.item.text"
+          style="margin: auto; display: block;"
+          indeterminate
+        ></v-progress-circular>
+        <v-card v-else flat>
+          <v-card-text>{{ props.item.text }}</v-card-text>
+        </v-card>
+      </template>
+      <template slot="no-data"></template>
+    </v-data-table>
+  </v-layout>
 </template>
 
 <script>
@@ -143,6 +107,10 @@ const saveBlob = (function() {
     window.URL.revokeObjectURL(a.href);
   };
 })();
+
+const addNoLabelOption = (labelOptions) =>
+  [{ text: "Unlabelled", value: null }].concat(labelOptions)
+
 
 export default {
   components: {
@@ -169,7 +137,7 @@ export default {
           text: "Label",
           value: "label",
           type: "options",
-          options: store.getters.currentProjectLabelsDisplay
+          options: addNoLabelOption(store.getters.currentProjectLabelsDisplay)
         },
         {
           text: "Body",
@@ -206,7 +174,7 @@ export default {
   },
 
   computed: {
-    labels: () => store.getters.currentProjectLabelsDisplay,
+    labels: () => addNoLabelOption(store.getters.currentProjectLabelsDisplay),
 
     documents: () => store.getters.currentProjectDocuments,
 
@@ -233,10 +201,6 @@ export default {
     headers() {
       return this.visibleAttributes.concat(this.additionalHeaders);
     },
-
-    importLabels() {
-      return [{ text: "Unlabelled", value: -1 }].concat(this.labels);
-    }
   },
 
   methods: {
@@ -373,9 +337,8 @@ export default {
       });
     },
 
-    saveImportedDocuments(documents, labelId) {
+    saveImportedDocuments(documents, label) {
       this.closeImportDialog();
-      const label = labelId === -1 ? null : labelId;
       this.importLoading = true;
 
       store

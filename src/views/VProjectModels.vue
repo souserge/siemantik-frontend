@@ -1,78 +1,51 @@
 <template>
-<v-layout column>
-  <v-toolbar flat color="white">
-    <v-spacer></v-spacer>
-    <v-btn
-      class="mb-2"
-      color="primary"
-      @click.stop="openNewModelDialog"
-    >
-      New Model
-    </v-btn>
+  <v-layout column>
+    <v-toolbar flat color="white">
+      <v-spacer></v-spacer>
+      <v-btn class="mb-2" color="primary" @click.stop="openNewModelDialog">New Model</v-btn>
 
-    <v-edit-dialog
-      :attributes="editableAttributes"
-      :dialog="newEditModelDialog"
-      @save="saveNewEdit"
-      @cancel="closeNewEditDialog"
-      :item="newEditModelItem"
-    >
-      Create/Edit new model
-    </v-edit-dialog>
-    
-    <v-confirm-dialog
-      :dialog="deleteModelDialog"
-      @confirm="deleteModel"
-      @cancel="closeDeleteDialog"
-    >
-      Are you sure you want to delete model "{{ 
+      <v-edit-dialog
+        :attributes="editableAttributes"
+        :dialog="newEditModelDialog"
+        @save="saveNewEdit"
+        @cancel="closeNewEditDialog"
+        :item="newEditModelItem"
+      >Create/Edit new model</v-edit-dialog>
+
+      <v-confirm-dialog
+        :dialog="deleteModelDialog"
+        @confirm="deleteModel"
+        @cancel="closeDeleteDialog"
+      >
+        Are you sure you want to delete model "{{
         deleteModelItem !== null ? deleteModelItem.name || deleteModelItem.id : ''
-      }}"?
-    </v-confirm-dialog>
-  </v-toolbar>
-  <v-data-table
-    :headers="headers"
-    :items="models"
-  >
-    <template slot="items" slot-scope="props">
-      <td>{{ props.item.id }}</td>
-      <td>{{ props.item.name }}</td>
-      <td>{{ getAlgorithmName(props.item.used_algorithm) }}</td>
-      <td>{{ getModelStatusName(props.item.model_status) }}</td>
-      <td>
-        <v-btn
-          @click="train(props.item)"
-          :disabled="props.item.model_status === MODEL_STATUSES.TRAINING"
-        >
-          train
-        </v-btn>
-        <v-btn
-          @click="classify(props.item)"
-          :disabled="props.item.model_status === MODEL_STATUSES.NOT_TRAINED"
-        >
-          classify
-        </v-btn>
-      </td>
-      <td>
-        <v-icon
-          small
-          class="mr-2"
-          @click.stop="openEditModelDialog(props.item)"
-        >
-          edit
-        </v-icon>
-        <v-icon
-          small
-          @click.stop="openDeleteDialog(props.item)"
-        >
-          delete
-        </v-icon>
-      </td>
-    </template>
-    <template slot="no-data">
-    </template>
-  </v-data-table>
-</v-layout>
+        }}"?
+      </v-confirm-dialog>
+    </v-toolbar>
+    <v-data-table :headers="headers" :items="models">
+      <template slot="items" slot-scope="props">
+        <td>{{ props.item.id }}</td>
+        <td>{{ props.item.name }}</td>
+        <td>{{ getAlgorithmName(props.item.used_algorithm) }}</td>
+        <td>{{ getModelStatusName(props.item.model_status) }}</td>
+        <td>
+          <v-btn
+            @click="train(props.item)"
+            :disabled="props.item.model_status === MODEL_STATUSES.TRAINING"
+          >train</v-btn>
+          <v-btn
+            @click="classify(props.item)"
+            :disabled="props.item.model_status === MODEL_STATUSES.NOT_TRAINED"
+          >classify</v-btn>
+        </td>
+        <td>
+          <v-icon small class="mr-2" @click.stop="openEditModelDialog(props.item)">edit</v-icon>
+          <v-icon small @click.stop="openDeleteDialog(props.item)">delete</v-icon>
+        </td>
+      </template>
+      <template slot="no-data"></template>
+    </v-data-table>
+  </v-layout>
 </template>
 
 <script>
@@ -144,7 +117,10 @@ export default {
       const documents = store.getters.currentProjectDocuments
         .filter(d => !d.is_set_manually)
         .map(d => d.id);
-      store.dispatch("classifyDocuments", { id: model.id, documents });
+      store.dispatch("classifyDocuments", { id: model.id, documents })
+      .then((data) => {
+        console.log(data);
+      });
     },
 
     getAlgorithmName(alg) {

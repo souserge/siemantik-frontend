@@ -648,6 +648,20 @@ export default new Vuex.Store({
             } documents!`
           });
         });
+    },
+
+    classifyDocuments({ commit }, { id, documents }) {
+      return apiAxios
+        .post(`models/${id}/classify/`, { documents })
+        .then(({ data }) => {
+          commit("enqueueNotification", {
+            type: "success",
+            text: `${
+              documents.length
+            } documents were classified with Model ID ${id}`
+          });
+          return data;
+        });
     }
   }
 });
