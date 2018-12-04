@@ -8,7 +8,7 @@
       <v-spacer></v-spacer>
       <v-toolbar-items>
         <v-btn :to="{ name: 'projects' }" flat>Projects</v-btn>
-        <v-btn flat>About</v-btn>
+        <v-btn :to="{ name: 'about' }" flat>About</v-btn>
         <v-btn class="text-small" flat>Hello, admin!</v-btn>
       </v-toolbar-items>
     </v-toolbar>

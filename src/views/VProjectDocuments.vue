@@ -1,11 +1,12 @@
 <template>
   <v-layout column>
     <v-toolbar flat color="white">
-      <v-toolbar-title>
-        <span class="px-2">#documents: {{ numberOfDocuments }},</span>
-        <span>#labeled (manually): {{ numberOfLabeledDocuments }}</span>
-      </v-toolbar-title>
+      <v-select v-model="showLabel" label="Filter by label" :items="showLabelOptions"></v-select>
       <v-spacer></v-spacer>
+      <v-text-field v-model="search" append-icon="search" label="Search for docs" single-line></v-text-field>
+
+      <v-spacer></v-spacer>
+
       <v-btn @click.stop="openNewDocDialog" color="primary" dark class="mb-2">New document</v-btn>
 
       <v-btn
@@ -53,11 +54,17 @@
       ></v-import-dialog>
     </v-toolbar>
 
-    <v-data-table :headers="headers" :items="documents" :loading="isLoading" expand>
+    <v-data-table
+      :headers="headers"
+      :items="documentsFilteredByLabel"
+      :loading="isLoading"
+      :search="search"
+      expand
+    >
       <template slot="items" slot-scope="props">
         <td @click="showText(props)">{{ props.item.id }}</td>
         <td @click="showText(props)">{{ props.item.title }}</td>
-        <td @click="showText(props)" :style="props.item.label === null ? 'opacity: 0.5' : ''">
+        <td @click="showText(props)" :style="props.item.label === null ? 'opacity: 0.4' : ''">
           {{ getLabelText(props.item.label) }}
           <v-tooltip
             v-if="props.item.label !== null 
@@ -111,6 +118,8 @@ const saveBlob = (function() {
 const addNoLabelOption = (labelOptions) =>
   [{ text: "Unlabelled", value: null }].concat(labelOptions)
 
+const addAllOption = (labelOptions) =>
+  [{text: "All", value: -1 }].concat(labelOptions)
 
 export default {
   components: {
@@ -121,6 +130,12 @@ export default {
 
   data() {
     return {
+      search: '',
+      showLabel: -1,
+      showLabelOptions:
+        addAllOption(
+          addNoLabelOption(
+            store.getters.currentProjectLabelsDisplay)),
       attributes: [
         { text: "ID", value: "id", visible: true, editable: false },
         {
@@ -170,6 +185,7 @@ export default {
     labels(newLabels) {
       const labelAttr = this.attributes.find(attr => attr.value === "label");
       labelAttr.options = newLabels;
+      this.showLabelOptions = addAllOption(newLabels);
     }
   },
 
@@ -179,6 +195,12 @@ export default {
     documents: () => store.getters.currentProjectDocuments,
 
     isLoading: () => store.getters.isCurrentProjectDocumentsLoading,
+
+    documentsFilteredByLabel() {
+      return this.showLabel === -1
+        ? this.documents
+        : this.documents.filter(d => d.label === this.showLabel)
+    },
 
     numberOfDocuments() {
       return this.documents.length;

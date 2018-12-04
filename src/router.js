@@ -1,6 +1,7 @@
 import Vue from "vue";
 import Router from "vue-router";
 import TheProjects from "./views/TheProjects";
+import TheAbout from "./views/TheAbout";
 import VProject from "./views/VProject";
 import VProjectDashboard from "./views/VProjectDashboard";
 import VProjectDocuments from "./views/VProjectDocuments";
@@ -11,6 +12,15 @@ Vue.use(Router);
 
 export default new Router({
   routes: [
+    {
+      path: "/",
+      redirect: { name: "projects" }
+    },
+    {
+      path: "/about",
+      name: "about",
+      component: TheAbout
+    },
     {
       path: "/projects",
       name: "projects",

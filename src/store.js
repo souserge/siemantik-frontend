@@ -263,6 +263,16 @@ export default new Vuex.Store({
       if (model) {
         Vue.set(model, "model_status", MODEL_STATUSES.TRAINING);
       }
+    },
+
+    setLabelsForDocsInCurrentProject(state, documents) {
+      documents.forEach(doc => {
+        const stateDoc = state.currentProject.data.documents.find(
+          d => d.id === doc.id
+        );
+
+        Vue.set(stateDoc, "label", doc.label);
+      });
     }
   },
 
@@ -661,6 +671,26 @@ export default new Vuex.Store({
             } documents were classified with Model ID ${id}`
           });
           return data;
+        });
+    },
+
+    setLabelsForDocsInProject({ commit, state }, { documents }) {
+      return apiAxios
+        .post(`projects/${state.currentProject.data.id}/set_doc_labels/`, {
+          documents
+        })
+        .then(() => {
+          commit("setLabelsForDocsInCurrentProject", documents);
+          commit("enqueueNotification", {
+            type: "success",
+            text: `${documents.length} documents were labelled!`
+          });
+        })
+        .catch(() => {
+          commit("enqueueNotification", {
+            type: "error",
+            text: `Uh-oh, couldn't set labels for the documents :(`
+          });
         });
     }
   }
