@@ -495,7 +495,7 @@ export default new Vuex.Store({
       return apiAxios
         .patch(`projects/${id}/`, {
           name,
-          description,
+          description: description || "",
           language
         })
         .then(({ data }) => {

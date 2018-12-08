@@ -1,65 +1,58 @@
 <template>
-<v-dialog
-  persistent
-  v-model="dialog"
-  max-width="700px"
-  @keydown.esc="cancel"
->
-  <v-card>
-    <v-card-title>
-      <span class="headline">
-        Upload multiple documents
-      </span>
-    </v-card-title>
+  <v-dialog persistent v-model="dialog" max-width="700px" @keydown.esc="cancel">
+    <v-card>
+      <v-card-title>
+        <span class="headline">Upload multiple documents</span>
+      </v-card-title>
 
-    <v-card-text>
-      <v-form>
-        <v-select
-          v-model="label"
-          :items="labels"
-          persistent-hint
-          hint="Imported documents will have this label automatically assigned"
-          label="Select label"
-          class="mb-4"
-        ></v-select>
-        <!--UPLOAD-->
-        <form enctype="multipart/form-data" novalidate>
-          <div class="dropbox">
-            <input
-              type="file"
-              multiple
-              @change="readFiles($event.target.name, $event.target.files)"
-              name="Select documents"
-              style="display: none"
-              ref="uploadInput"
-            >
-          </div>
-          <v-btn
-            @click="selectFiles"
-            :loading="state === STATES.SELECTING"
-            :disabled="state > STATES.SELECTING"
-          >
-            Select Documents...
+      <v-card-text>
+        <v-form>
+          <v-select
+            v-model="label"
+            :items="labels"
+            persistent-hint
+            hint="Imported documents will have this label automatically assigned"
+            label="Select label"
+            class="mb-4"
+          ></v-select>
+          <!--UPLOAD-->
+          <form id="upload-form" enctype="multipart/form-data" novalidate>
+            <div class="dropbox">
+              <input
+                type="file"
+                multiple
+                @change="readFiles($event.target.name, $event.target.files)"
+                name="Select documents"
+                style="display: none"
+                ref="uploadInput"
+              >
+            </div>
+            <v-btn
+              @click="selectFiles"
+              :loading="state === STATES.SELECTING"
+              :disabled="state > STATES.SELECTING"
+            >Select Documents...</v-btn>
+          </form>
+          <v-btn @click="reselectDocs" small flat v-if="state === STATES.SELECTED">
+            <span style="opacity: 0.6;text-transform:capitalize">Reselect</span>
           </v-btn>
-        </form>
-        <v-btn @click="reselectDocs" small flat v-if="state === STATES.SELECTED">
-          <span style="opacity: 0.6;text-transform:capitalize">Reselect</span>
-        </v-btn>
-      </v-form>
-      <v-progress-linear v-if="importProgress > 0" v-model="importProgressPercentage"></v-progress-linear>
-      <span v-if="state === STATES.SELECTED"><b>{{ numImportedDocs }}</b> {{ numImportedDocs > 1 ? 'documents were' : 'document was' }} selected! Click "Upload" to save changes.</span>
-    </v-card-text>
+        </v-form>
+        <v-progress-linear v-if="importProgress > 0" v-model="importProgressPercentage"></v-progress-linear>
+        <span v-if="state === STATES.SELECTED">
+          <b>{{ numImportedDocs }}</b>
+          {{ numImportedDocs > 1 ? 'documents were' : 'document was' }} selected! Click "Upload" to save changes.
+        </span>
+      </v-card-text>
 
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <v-btn color="blue darken-1" flat @click="cancel">Cancel</v-btn>
-      <v-btn color="primary" :disabled="state < STATES.SELECTED" @click="uploadDocuments">
-        Upload
-        <!-- <v-icon right>cloud_upload</v-icon> -->
-      </v-btn>
-    </v-card-actions>
-  </v-card>
-</v-dialog>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="blue darken-1" flat @click="cancel">Cancel</v-btn>
+        <v-btn color="primary" :disabled="state < STATES.SELECTED" @click="uploadDocuments">Upload
+          <!-- <v-icon right>cloud_upload</v-icon> -->
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script>
@@ -172,5 +165,8 @@ export default {
 };
 </script>
 
-<style>
+<style lang="scss" scoped>
+#upload-form {
+  display: inline-block;
+}
 </style>
