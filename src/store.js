@@ -31,7 +31,7 @@ export const MODEL_STATUSES = {
   TRAINED: 2
 };
 
-export default new Vuex.Store({
+export const storeConfig = {
   state: {
     languages: {
       ru: "Russian"
@@ -694,4 +694,6 @@ export default new Vuex.Store({
         });
     }
   }
-});
+};
+
+export default new Vuex.Store(storeConfig);
