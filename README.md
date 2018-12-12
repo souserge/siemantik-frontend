@@ -1,29 +1,29 @@
 # siemantik-frontend
 
+## Prerequisites
+  - [Node.js](https://nodejs.org/en/) version 8.9 or above (8.11.0+ recommended)
+
 ## Project setup
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### Compile and hot-reload for development
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
+### Compile and minify for production
 ```
 npm run build
 ```
 
-### Run your tests
+### Run tests
 ```
 npm run test
 ```
 
-### Lints and fixes files
+### Run linter
 ```
 npm run lint
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
